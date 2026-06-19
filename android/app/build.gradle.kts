@@ -28,6 +28,19 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // Required by the auth0_flutter plugin's manifest (redirect intent-filter).
+        // Not a secret - the Auth0 domain is public (visible in every login URL) - so
+        // it's safe to duplicate here from .env's AUTH0_DOMAIN; Gradle can't read
+        // Dart's .env at build time.
+        //
+        // Using a custom scheme (not "https") so the redirect back into the app
+        // doesn't depend on Android App Links verification. The plugin's bundled
+        // intent-filter has no android:autoVerify, so Chrome won't honor an
+        // unverified https deep link on Auth0's server-initiated redirect after
+        // login - it just loads the callback URL as a normal page and 404s.
+        manifestPlaceholders["auth0Domain"] = "dev-dxsfu1ajem7xnzwi.us.auth0.com"
+        manifestPlaceholders["auth0Scheme"] = "com.example.moviziusapp"
     }
 
     buildTypes {

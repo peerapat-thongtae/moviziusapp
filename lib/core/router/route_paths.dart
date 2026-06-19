@@ -1,0 +1,6 @@
+class RoutePaths {
+  RoutePaths._();
+
+  static const login = '/login';
+  static const home = '/';
+}
