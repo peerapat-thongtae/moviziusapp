@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/auth/pages/home_page.dart';
 import '../../features/auth/pages/login_page.dart';
+import '../../features/explore/pages/explore_page.dart';
 import '../../features/profile/pages/profile_page.dart';
 import '../../features/search/pages/search_page.dart';
 import '../auth/auth_notifier.dart';
@@ -49,6 +50,14 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: RoutePaths.search,
                 builder: (context, state) => const SearchPage(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: RoutePaths.explore,
+                builder: (context, state) => const ExplorePage(),
               ),
             ],
           ),

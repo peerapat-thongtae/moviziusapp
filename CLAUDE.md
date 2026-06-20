@@ -167,6 +167,8 @@ Business logic belongs in:
 
 Widgets should focus on presentation.
 
+Every feature should include animation or transition (e.g. page transitions, implicit animations, `AnimatedSwitcher`, Hero animations) rather than static/instant UI changes. Keep animations simple and idiomatic to Flutter/Material 3 — avoid heavy custom animation frameworks unless explicitly required.
+
 ---
 
 ## Authentication Rules

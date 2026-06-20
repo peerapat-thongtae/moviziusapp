@@ -23,15 +23,15 @@ class MoviziusApp extends ConsumerWidget {
     if (authState is AuthLoading) {
       return MaterialApp(
         theme: AppTheme.light(),
+        themeMode: ThemeMode.dark,
         darkTheme: AppTheme.dark(),
-        home: const Scaffold(
-          body: Center(child: CircularProgressIndicator()),
-        ),
+        home: const Scaffold(body: Center(child: CircularProgressIndicator())),
       );
     }
 
     return MaterialApp.router(
       title: 'Movizius',
+      themeMode: ThemeMode.dark,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       routerConfig: ref.watch(goRouterProvider),
