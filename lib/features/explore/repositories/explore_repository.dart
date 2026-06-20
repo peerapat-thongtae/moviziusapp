@@ -19,6 +19,19 @@ const _creators = [
 
 const _seriesStatuses = ['Returning Series', 'Ended', 'Canceled'];
 
+const _genrePool = [
+  'Drama',
+  'Thriller',
+  'Sci-Fi',
+  'Action',
+  'Comedy',
+  'Horror',
+  'Mystery',
+  'Crime',
+  'Fantasy',
+  'Adventure',
+];
+
 /// Builds a single mock series entry. Metadata (rating, dates, creator,
 /// status) is derived from [seed] so each entry gets distinct-looking mock
 /// values without hand-typing every field.
@@ -39,6 +52,10 @@ ExploreVideo _series({
     voteAverage: 5.0 + (seed % 41) / 10,
     voteCount: 500 + seed * 137,
     status: _seriesStatuses[seed % _seriesStatuses.length],
+    genres: [
+      _genrePool[seed % _genrePool.length],
+      _genrePool[(seed + 3) % _genrePool.length],
+    ],
     firstAirDate:
         '$year-${month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}',
     totalSeasons: totalSeasons,
@@ -181,6 +198,7 @@ class ExploreRepository {
       voteAverage: movie.voteAverage,
       voteCount: movie.voteCount,
       status: movie.status,
+      genres: movie.genres.map((g) => g.name).toList(),
       releaseDate: movie.releaseDate?.toIso8601String().split('T').first ?? '',
       director: _director(movie.casts?.crew ?? const []),
     );

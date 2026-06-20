@@ -5,6 +5,7 @@ class ExploreVideo {
   final double voteAverage;
   final int voteCount;
   final String status;
+  final List<String> genres;
 
   // Movie-only metadata.
   final String? releaseDate;
@@ -23,6 +24,7 @@ class ExploreVideo {
     required this.voteAverage,
     required this.voteCount,
     required this.status,
+    this.genres = const [],
     this.releaseDate,
     this.director,
     this.firstAirDate,

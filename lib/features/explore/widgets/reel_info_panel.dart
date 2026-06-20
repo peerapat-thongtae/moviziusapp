@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../core/router/route_paths.dart';
+import '../../../core/widgets/tag.dart';
 import '../models/explore_media_type.dart';
 import '../models/explore_video.dart';
 
@@ -17,18 +20,28 @@ class ReelInfoPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final movieId = int.tryParse(video.id);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          video.title,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
+        InkWell(
+          onTap: movieId == null
+              ? null
+              : () => context.push(
+                  RoutePaths.movieDetailPath(movieId),
+                  extra: video.title,
+                ),
+          child: Text(
+            video.title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
         const SizedBox(height: 6),
@@ -63,6 +76,21 @@ class ReelInfoPanel extends StatelessWidget {
             ),
           ),
         ),
+        if (video.genres.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final genre in video.genres)
+                Tag(
+                  label: genre,
+                  backgroundColor: Colors.white.withValues(alpha: 0.16),
+                  foregroundColor: Colors.white,
+                ),
+            ],
+          ),
+        ],
       ],
     );
   }

@@ -6,4 +6,7 @@ class RoutePaths {
   static const search = '/search';
   static const explore = '/explore';
   static const profile = '/profile';
+  static const movieDetail = '/movie/:id';
+
+  static String movieDetailPath(int id) => '/movie/$id';
 }

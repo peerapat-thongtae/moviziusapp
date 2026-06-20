@@ -6,6 +6,7 @@ import 'core/auth/auth_state.dart';
 import 'core/constants/app_config.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'features/watchlist/providers/watchlist_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,6 +20,14 @@ class MoviziusApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authNotifierProvider);
+
+    ref.listen<AuthState>(authNotifierProvider, (previous, next) {
+      if (next is AuthAuthenticated) {
+        ref.read(watchlistNotifierProvider.notifier).refresh();
+      } else if (next is AuthUnauthenticated) {
+        ref.invalidate(watchlistNotifierProvider);
+      }
+    });
 
     if (authState is AuthLoading) {
       return MaterialApp(

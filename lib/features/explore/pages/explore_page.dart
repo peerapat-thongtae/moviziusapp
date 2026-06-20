@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
+import '../../watchlist/providers/watchlist_provider.dart';
 import '../models/explore_media_type.dart';
 import '../models/explore_video.dart';
 import '../providers/explore_videos_provider.dart';
+import '../providers/explore_visibility_provider.dart';
 import '../widgets/reel_info_panel.dart';
 import '../widgets/reel_video_player.dart';
 
@@ -26,10 +28,23 @@ const int _kWindowRadius = 1;
 /// prefetch the next page in the background so the feed never runs dry.
 const int _kPrefetchRemaining = 8;
 
+class _TabSnapshot {
+  const _TabSnapshot({
+    required this.videos,
+    required this.currentIndex,
+    required this.hasMore,
+  });
+
+  final List<ExploreVideo> videos;
+  final int currentIndex;
+  final bool hasMore;
+}
+
 class _ExplorePageState extends ConsumerState<ExplorePage> {
   final _pageController = PageController();
   List<ExploreVideo> _videos = const [];
   final _controllers = <int, YoutubePlayerController>{};
+  final _tabStates = <ExploreMediaType, _TabSnapshot>{};
   ExploreMediaType _mediaType = ExploreMediaType.movies;
   int _currentIndex = 0;
   bool _isMuted = false;
@@ -37,7 +52,6 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
   bool _hasMore = true;
   bool _isFetchingMore = false;
   Object? _error;
-  final _savedVideoIds = <String>{};
 
   @override
   void initState() {
@@ -99,10 +113,12 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
   }
 
   /// Loads (or reloads) the feed from [exploreVideosProvider] and resets
-  /// back to the first reel. Also used when switching media type, since
-  /// that's effectively a reload against a different dataset. Always
-  /// invalidates the provider first so this is a genuine refetch rather than
-  /// returning Riverpod's cached value for the same [ExploreMediaType] key.
+  /// back to the first reel. Used for the initial load, explicit reloads,
+  /// and the first-ever visit to a given media type this session (see
+  /// [_switchMediaType], which restores from [_tabStates] instead on repeat
+  /// visits). Always invalidates the provider first so this is a genuine
+  /// refetch rather than returning Riverpod's cached value for the same
+  /// [ExploreMediaType] key.
   Future<void> _loadVideos({ExploreMediaType? mediaType}) async {
     for (final controller in _controllers.values) {
       controller.close();
@@ -169,7 +185,47 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
 
   Future<void> _reload() => _loadVideos(mediaType: _mediaType);
 
-  void _toggleMediaType() => _loadVideos(mediaType: _mediaType.next);
+  /// Switches Movies/Series, restoring the target tab's previous reel/scroll
+  /// position from [_tabStates] instead of reloading from scratch if it's
+  /// been visited before this session.
+  Future<void> _switchMediaType(ExploreMediaType type) async {
+    if (type == _mediaType) return;
+
+    if (_videos.isNotEmpty) {
+      _tabStates[_mediaType] = _TabSnapshot(
+        videos: _videos,
+        currentIndex: _currentIndex,
+        hasMore: _hasMore,
+      );
+    }
+
+    final cached = _tabStates[type];
+    if (cached == null) {
+      await _loadVideos(mediaType: type);
+      return;
+    }
+
+    for (final controller in _controllers.values) {
+      controller.close();
+    }
+    _controllers.clear();
+
+    setState(() {
+      _mediaType = type;
+      _videos = cached.videos;
+      _currentIndex = cached.currentIndex;
+      _hasMore = cached.hasMore;
+      _isLoading = false;
+      _error = null;
+    });
+
+    _ensureWindow(_currentIndex);
+    if (_pageController.hasClients) {
+      _pageController.jumpToPage(_currentIndex);
+    }
+  }
+
+  void _toggleMediaType() => _switchMediaType(_mediaType.next);
 
   void _toggleMute() {
     setState(() => _isMuted = !_isMuted);
@@ -180,24 +236,20 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
     }
   }
 
-  void _toggleSaved(String videoId) {
-    setState(() {
-      if (_savedVideoIds.contains(videoId)) {
-        _savedVideoIds.remove(videoId);
+  Future<void> _toggleSaved(int movieId, bool isWatchlisted) async {
+    final notifier = ref.read(watchlistNotifierProvider.notifier);
+    try {
+      if (isWatchlisted) {
+        await notifier.removeFromWatchlist(movieId);
       } else {
-        _savedVideoIds.add(videoId);
+        await notifier.addToWatchlist(movieId);
       }
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          _savedVideoIds.contains(videoId)
-              ? 'Added to watchlist (mock)'
-              : 'Removed from watchlist (mock)',
-        ),
-        duration: const Duration(seconds: 1),
-      ),
-    );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Could not update watchlist: $e')));
+    }
   }
 
   Widget _buildContent() {
@@ -225,6 +277,8 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
       );
     }
 
+    final watchlist = ref.watch(watchlistNotifierProvider).value ?? {};
+
     return PageView.builder(
       controller: _pageController,
       scrollDirection: Axis.vertical,
@@ -233,6 +287,10 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
       itemBuilder: (context, index) {
         final video = _videos[index];
         final controller = _controllers[index];
+
+        final movieId = int.tryParse(video.id);
+        final isWatchlisted =
+            movieId != null && watchlist[movieId]?.accountStatus == 'watchlist';
         return Stack(
           fit: StackFit.expand,
           children: [
@@ -258,10 +316,13 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                     right: 12,
                     bottom: 16,
                     child: _OverlayIconButton(
-                      icon: _savedVideoIds.contains(video.id)
+                      icon: isWatchlisted
                           ? Icons.bookmark
                           : Icons.bookmark_border,
-                      onPressed: () => _toggleSaved(video.id),
+                      color: isWatchlisted ? Colors.amber : Colors.white,
+                      onPressed: movieId == null
+                          ? null
+                          : () => _toggleSaved(movieId, isWatchlisted),
                     ),
                   ),
                 ],
@@ -275,6 +336,16 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<bool>(exploreTabVisibleProvider, (previous, isVisible) {
+      if (isVisible) {
+        _controllers[_currentIndex]?.playVideo();
+      } else {
+        for (final controller in _controllers.values) {
+          controller.pauseVideo();
+        }
+      }
+    });
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
@@ -432,10 +503,15 @@ class _MediaTypeButton extends StatelessWidget {
 }
 
 class _OverlayIconButton extends StatelessWidget {
-  const _OverlayIconButton({required this.icon, required this.onPressed});
+  const _OverlayIconButton({
+    required this.icon,
+    required this.onPressed,
+    this.color = Colors.white,
+  });
 
   final IconData icon;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
@@ -445,7 +521,7 @@ class _OverlayIconButton extends StatelessWidget {
         shape: BoxShape.circle,
       ),
       child: IconButton(
-        icon: Icon(icon, color: Colors.white),
+        icon: Icon(icon, color: color),
         onPressed: onPressed,
       ),
     );
