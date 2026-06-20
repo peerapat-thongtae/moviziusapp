@@ -25,12 +25,17 @@ class LoginPage extends ConsumerWidget {
                   color: Theme.of(context).colorScheme.primary,
                 ),
                 const SizedBox(height: 16),
-                Text('Movizius', style: Theme.of(context).textTheme.headlineMedium),
+                Text(
+                  'Movizius',
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
                 const SizedBox(height: 32),
                 if (authState is AuthError) ...[
                   Text(
                     authState.message,
-                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 16),
@@ -42,7 +47,10 @@ class LoginPage extends ConsumerWidget {
                     onPressed: () =>
                         ref.read(authNotifierProvider.notifier).login(),
                     child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
                       child: Text('Log In'),
                     ),
                   ),

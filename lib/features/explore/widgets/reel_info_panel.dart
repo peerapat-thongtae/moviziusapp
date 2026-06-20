@@ -1,0 +1,106 @@
+import 'package:flutter/material.dart';
+
+import '../models/explore_media_type.dart';
+import '../models/explore_video.dart';
+
+/// Bottom-left overlay showing a reel's metadata: title, rating, and the
+/// fields relevant to its [ExploreMediaType] (release info vs. season info).
+class ReelInfoPanel extends StatelessWidget {
+  const ReelInfoPanel({
+    super.key,
+    required this.video,
+    required this.mediaType,
+  });
+
+  final ExploreVideo video;
+  final ExploreMediaType mediaType;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          video.title,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const _ImdbBadge(),
+            const SizedBox(width: 6),
+            Text(
+              video.voteAverage.toStringAsFixed(1),
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              '(${video.voteCount})',
+              style: const TextStyle(color: Colors.white70, fontSize: 12),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        ..._metaLines().map(
+          (line) => Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Text(
+              line,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.white70, fontSize: 12),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  List<String> _metaLines() {
+    return switch (mediaType) {
+      ExploreMediaType.movies => [
+        '${video.releaseDate} • ${video.status}',
+        'Director: ${video.director}',
+      ],
+      ExploreMediaType.series => [
+        '${video.firstAirDate} • ${video.status}',
+        '${video.totalSeasons} Seasons • ${video.totalEpisodes} Episodes',
+        'Creator: ${video.creator}',
+      ],
+    };
+  }
+}
+
+class _ImdbBadge extends StatelessWidget {
+  const _ImdbBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5C518),
+        borderRadius: BorderRadius.circular(3),
+      ),
+      child: const Text(
+        'IMDb',
+        style: TextStyle(
+          color: Colors.black,
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}

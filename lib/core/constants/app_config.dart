@@ -9,6 +9,7 @@ class AppConfig {
 
   static String get auth0Domain => _require('AUTH0_DOMAIN');
   static String get auth0ClientId => _require('AUTH0_CLIENT_ID');
+  static String get auth0ApiAudience => _require('AUTH0_API_AUDIENCE');
   static String get moviziusApiUrl => _require('MOVIZIUS_API_URL');
   static String get tmdbApiUrl => _require('TMDB_API_URL');
   static String get tmdbApiKey => _require('TMDB_API_KEY');

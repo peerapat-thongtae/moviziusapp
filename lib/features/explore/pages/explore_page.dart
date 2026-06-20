@@ -5,6 +5,7 @@ import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import '../models/explore_media_type.dart';
 import '../models/explore_video.dart';
 import '../providers/explore_videos_provider.dart';
+import '../widgets/reel_info_panel.dart';
 import '../widgets/reel_video_player.dart';
 
 class ExplorePage extends ConsumerStatefulWidget {
@@ -21,20 +22,27 @@ class ExplorePage extends ConsumerStatefulWidget {
 /// length, instead of one per video.
 const int _kWindowRadius = 1;
 
+/// Once fewer than this many loaded items remain after the current one,
+/// prefetch the next page in the background so the feed never runs dry.
+const int _kPrefetchRemaining = 8;
+
 class _ExplorePageState extends ConsumerState<ExplorePage> {
   final _pageController = PageController();
-  late List<ExploreVideo> _videos;
+  List<ExploreVideo> _videos = const [];
   final _controllers = <int, YoutubePlayerController>{};
   ExploreMediaType _mediaType = ExploreMediaType.movies;
   int _currentIndex = 0;
   bool _isMuted = false;
+  bool _isLoading = true;
+  bool _hasMore = true;
+  bool _isFetchingMore = false;
+  Object? _error;
   final _savedVideoIds = <String>{};
 
   @override
   void initState() {
     super.initState();
-    _videos = ref.read(exploreVideosProvider(_mediaType));
-    _ensureWindow(_currentIndex);
+    _loadVideos();
   }
 
   @override
@@ -83,30 +91,85 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
     _ensureWindow(index);
     _controllers[index]?.playVideo();
     setState(() => _currentIndex = index);
+
+    final remaining = _videos.length - 1 - index;
+    if (_hasMore && !_isFetchingMore && remaining <= _kPrefetchRemaining) {
+      _loadMoreVideos();
+    }
   }
 
-  /// Resets the feed back to the first reel and reloads its data.
-  /// Also used when switching media type, since that's effectively a
-  /// reload against a different mock dataset.
-  void _reload({ExploreMediaType? mediaType}) {
+  /// Loads (or reloads) the feed from [exploreVideosProvider] and resets
+  /// back to the first reel. Also used when switching media type, since
+  /// that's effectively a reload against a different dataset. Always
+  /// invalidates the provider first so this is a genuine refetch rather than
+  /// returning Riverpod's cached value for the same [ExploreMediaType] key.
+  Future<void> _loadVideos({ExploreMediaType? mediaType}) async {
     for (final controller in _controllers.values) {
       controller.close();
     }
     _controllers.clear();
 
+    final type = mediaType ?? _mediaType;
+
     setState(() {
-      _mediaType = mediaType ?? _mediaType;
-      _videos = ref.read(exploreVideosProvider(_mediaType));
+      _mediaType = type;
+      _isLoading = true;
+      _error = null;
       _currentIndex = 0;
     });
 
-    _ensureWindow(0);
-    if (_pageController.hasClients) {
-      _pageController.jumpToPage(0);
+    try {
+      ref.invalidate(exploreVideosProvider(type));
+      final page = await ref
+          .read(exploreVideosProvider(type).future)
+          .timeout(const Duration(seconds: 20));
+      if (!mounted) return;
+
+      setState(() {
+        _videos = page.videos;
+        _hasMore = page.hasMore;
+        _isLoading = false;
+      });
+
+      _ensureWindow(0);
+      if (_pageController.hasClients) {
+        _pageController.jumpToPage(0);
+      }
+    } catch (e, stackTrace) {
+      debugPrint('ExplorePage._loadVideos failed: $e\n$stackTrace');
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _error = e;
+      });
     }
   }
 
-  void _toggleMediaType() => _reload(mediaType: _mediaType.next);
+  /// Appends the next page in the background. Failures are logged and
+  /// swallowed rather than shown as an error — the current feed keeps
+  /// playing either way, and the next swipe-triggered attempt (or the next
+  /// reload) can retry.
+  Future<void> _loadMoreVideos() async {
+    _isFetchingMore = true;
+    try {
+      final page = await ref
+          .read(exploreRepositoryProvider)
+          .fetchNextPage(_mediaType);
+      if (!mounted) return;
+      setState(() {
+        _videos = [..._videos, ...page.videos];
+        _hasMore = page.hasMore;
+      });
+    } catch (e, stackTrace) {
+      debugPrint('ExplorePage._loadMoreVideos failed: $e\n$stackTrace');
+    } finally {
+      _isFetchingMore = false;
+    }
+  }
+
+  Future<void> _reload() => _loadVideos(mediaType: _mediaType);
+
+  void _toggleMediaType() => _loadVideos(mediaType: _mediaType.next);
 
   void _toggleMute() {
     setState(() => _isMuted = !_isMuted);
@@ -137,31 +200,86 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
     );
   }
 
+  Widget _buildContent() {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: Colors.white),
+      );
+    }
+
+    if (_error != null) {
+      return _MessageContent(
+        icon: Icons.error_outline,
+        message: 'Could not load videos.\n$_error',
+        buttonLabel: 'Retry',
+        onPressed: _reload,
+      );
+    }
+
+    if (_videos.isEmpty) {
+      return _MessageContent(
+        icon: Icons.movie_filter_outlined,
+        message: 'No ${_mediaType.label.toLowerCase()} found right now.',
+        buttonLabel: 'Reload',
+        onPressed: _reload,
+      );
+    }
+
+    return PageView.builder(
+      controller: _pageController,
+      scrollDirection: Axis.vertical,
+      itemCount: _videos.length,
+      onPageChanged: _onPageChanged,
+      itemBuilder: (context, index) {
+        final video = _videos[index];
+        final controller = _controllers[index];
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            controller == null
+                ? _ReelPlaceholder(key: ValueKey(video.id), video: video)
+                : ReelVideoPlayer(
+                    key: ValueKey(video.id),
+                    controller: controller,
+                  ),
+            // Lives inside the page (not the persistent overlay below) so it
+            // slides up/down together with its own video instead of
+            // snapping to the new video only once the swipe settles.
+            SafeArea(
+              child: Stack(
+                children: [
+                  Positioned(
+                    left: 16,
+                    right: 76,
+                    bottom: 16,
+                    child: ReelInfoPanel(video: video, mediaType: _mediaType),
+                  ),
+                  Positioned(
+                    right: 12,
+                    bottom: 16,
+                    child: _OverlayIconButton(
+                      icon: _savedVideoIds.contains(video.id)
+                          ? Icons.bookmark
+                          : Icons.bookmark_border,
+                      onPressed: () => _toggleSaved(video.id),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          PageView.builder(
-            controller: _pageController,
-            scrollDirection: Axis.vertical,
-            itemCount: _videos.length,
-            onPageChanged: _onPageChanged,
-            itemBuilder: (context, index) {
-              final controller = _controllers[index];
-              if (controller == null) {
-                return _ReelPlaceholder(
-                  key: ValueKey(_videos[index].id),
-                  video: _videos[index],
-                );
-              }
-              return ReelVideoPlayer(
-                key: ValueKey(_videos[index].id),
-                controller: controller,
-              );
-            },
-          ),
+          _buildContent(),
           SafeArea(
             child: TweenAnimationBuilder<double>(
               tween: Tween(begin: 0, end: 1),
@@ -199,35 +317,52 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                       ),
                     ),
                   ),
-                  Positioned(
-                    bottom: 16,
-                    left: 0,
-                    right: 0,
-                    child: Center(
-                      child: Text(
-                        '${_currentIndex + 1}/${_videos.length}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    right: 12,
-                    bottom: 64,
-                    child: _OverlayIconButton(
-                      icon: _savedVideoIds.contains(_videos[_currentIndex].id)
-                          ? Icons.bookmark
-                          : Icons.bookmark_border,
-                      onPressed: () => _toggleSaved(_videos[_currentIndex].id),
-                    ),
-                  ),
                 ],
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Icon + message + action button for the error and empty-list states
+/// (loading uses a bare spinner instead). Nests inside [ExplorePage]'s own
+/// `Scaffold`/overlay rather than being a screen of its own, so the top
+/// mute/reload/media-type controls stay visible and tappable through it.
+class _MessageContent extends StatelessWidget {
+  const _MessageContent({
+    required this.icon,
+    required this.message,
+    required this.buttonLabel,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String message;
+  final String buttonLabel;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: Colors.white70, size: 40),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white70),
+            ),
+            const SizedBox(height: 16),
+            FilledButton(onPressed: onPressed, child: Text(buttonLabel)),
+          ],
+        ),
       ),
     );
   }

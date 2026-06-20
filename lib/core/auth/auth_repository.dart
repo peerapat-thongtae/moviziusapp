@@ -1,6 +1,7 @@
 import 'package:auth0_flutter/auth0_flutter.dart';
 import 'package:flutter/foundation.dart';
 
+import '../constants/app_config.dart';
 import 'auth_state.dart';
 
 abstract class AuthRepository {
@@ -43,7 +44,7 @@ class Auth0AuthRepository implements AuthRepository {
     try {
       final credentials = await _auth0
           .webAuthentication(scheme: _androidScheme)
-          .login();
+          .login(audience: AppConfig.auth0ApiAudience);
       return AuthAuthenticated(credentials.user, credentials);
     } on WebAuthenticationException catch (e) {
       return mapLoginException(e);
