@@ -8,47 +8,46 @@ import '../../../core/widgets/poster_banner.dart';
 import '../../../core/widgets/tag.dart';
 import '../../../core/widgets/trailer_player_dialog.dart';
 import '../../watchlist/widgets/watchlist_icon_button.dart';
-import '../models/movie_discover_response.dart';
+import '../models/tv_discover_response.dart';
 
-/// Picks the best YouTube trailer key out of [movie]'s videos: an official
-/// trailer if there is one, else any YouTube video, else none.
-String? _trailerKey(Movie movie) {
-  final videos = movie.videos?.results ?? const [];
+/// Picks the best YouTube trailer key out of [show]'s videos: an official
+/// trailer if there is one, else any YouTube video, else none. Unlike
+/// [Movie]'s videos, [TvShow]'s `site`/`type` are plain strings rather than
+/// enums, so these are compared against TMDB's raw values directly.
+String? _trailerKey(TvShow show) {
+  final videos = show.videos?.results ?? const [];
   for (final video in videos) {
-    if (video.site == Site.YOU_TUBE &&
-        video.type == VideoType.TRAILER &&
-        video.official) {
+    if (video.site == 'YouTube' && video.type == 'Trailer' && video.official) {
       return video.key;
     }
   }
   for (final video in videos) {
-    if (video.site == Site.YOU_TUBE) return video.key;
+    if (video.site == 'YouTube') return video.key;
   }
   return null;
 }
 
 /// Reachable from the home hero slider, which already has the full
-/// [Movie] fetched (passed via the route's `extra`) — that's rendered in
-/// full below. Other entry points (e.g. the Explore tab's reel title, which
-/// only passes a title string today) fall back to a minimal display. Both
-/// share the same shell: no app bar background, just a back button floating
-/// over the content, with the watchlist toggle living in the detail section
-/// next to the title instead.
-class MovieDetailPage extends ConsumerWidget {
-  const MovieDetailPage({
+/// [TvShow] fetched (passed via the route's `extra`) — that's rendered in
+/// full below. Other entry points fall back to a minimal display. Both
+/// share the same shell as [MovieDetailPage]: no app bar background, just a
+/// back button floating over the content, with the watchlist toggle living
+/// in the detail section next to the title instead.
+class SeriesDetailPage extends ConsumerWidget {
+  const SeriesDetailPage({
     super.key,
-    required this.movieId,
+    required this.seriesId,
     this.title,
-    this.movie,
+    this.show,
   });
 
-  final int movieId;
+  final int seriesId;
   final String? title;
-  final Movie? movie;
+  final TvShow? show;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final movie = this.movie;
+    final show = this.show;
 
     return Scaffold(
       body: Stack(
@@ -58,9 +57,9 @@ class MovieDetailPage extends ConsumerWidget {
             duration: const Duration(milliseconds: 300),
             builder: (context, opacity, child) =>
                 Opacity(opacity: opacity, child: child),
-            child: movie == null
-                ? _FallbackBody(movieId: movieId, title: title)
-                : _MovieBody(movie: movie, movieId: movieId),
+            child: show == null
+                ? _FallbackBody(seriesId: seriesId, title: title)
+                : _SeriesBody(show: show, seriesId: seriesId),
           ),
           SafeArea(
             child: Padding(
@@ -78,9 +77,9 @@ class MovieDetailPage extends ConsumerWidget {
 }
 
 class _FallbackBody extends StatelessWidget {
-  const _FallbackBody({required this.movieId, this.title});
+  const _FallbackBody({required this.seriesId, this.title});
 
-  final int movieId;
+  final int seriesId;
   final String? title;
 
   @override
@@ -102,18 +101,18 @@ class _FallbackBody extends StatelessWidget {
                     style: textTheme.headlineSmall,
                   ),
                 ),
-                WatchlistIconButton(id: movieId),
+                WatchlistIconButton(id: seriesId, mediaType: 'tv'),
               ],
             ),
             const SizedBox(height: 4),
-            Text('Movie ID: $movieId', style: textTheme.bodySmall),
+            Text('Series ID: $seriesId', style: textTheme.bodySmall),
             const SizedBox(height: 16),
             Text('Overview', style: textTheme.titleMedium),
             const SizedBox(height: 8),
             const Text(
-              'This is placeholder overview text. Real movie details '
-              '(synopsis, cast, runtime, trailer) will be wired up once '
-              'the movie detail API is integrated.',
+              'This is placeholder overview text. Real series details '
+              '(synopsis, seasons, cast, networks) will be wired up once '
+              'the series detail API is integrated.',
             ),
           ],
         ),
@@ -122,18 +121,19 @@ class _FallbackBody extends StatelessWidget {
   }
 }
 
-class _MovieBody extends StatelessWidget {
-  const _MovieBody({required this.movie, required this.movieId});
+class _SeriesBody extends StatelessWidget {
+  const _SeriesBody({required this.show, required this.seriesId});
 
-  final Movie movie;
-  final int movieId;
+  final TvShow show;
+  final int seriesId;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final releaseDate =
-        movie.releaseDate?.toIso8601String().split('T').first ?? 'Unknown';
-    final trailerKey = _trailerKey(movie);
+    final creator = show.createdBy.isNotEmpty
+        ? show.createdBy.first.name
+        : 'Unknown';
+    final trailerKey = _trailerKey(show);
 
     return SingleChildScrollView(
       child: Column(
@@ -143,7 +143,7 @@ class _MovieBody extends StatelessWidget {
             alignment: Alignment.center,
             children: [
               PosterBanner(
-                imagePath: movie.backdropPath,
+                imagePath: show.backdropPath,
                 isBackdrop: true,
                 height: 260,
               ),
@@ -164,9 +164,9 @@ class _MovieBody extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
-                      child: Text(movie.title, style: textTheme.headlineSmall),
+                      child: Text(show.name, style: textTheme.headlineSmall),
                     ),
-                    WatchlistIconButton(id: movieId),
+                    WatchlistIconButton(id: seriesId, mediaType: 'tv'),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -176,28 +176,28 @@ class _MovieBody extends StatelessWidget {
                     const ImdbBadge(),
                     const SizedBox(width: 6),
                     Text(
-                      movie.voteAverage.toStringAsFixed(1),
+                      show.voteAverage.toStringAsFixed(1),
                       style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(width: 4),
-                    Text('(${movie.voteCount})', style: textTheme.bodySmall),
+                    Text('(${show.voteCount})', style: textTheme.bodySmall),
                   ],
                 ),
                 const SizedBox(height: 8),
-                Text('$releaseDate • ${movie.status}'),
+                Text('${show.firstAirDate} • ${show.status}'),
                 const SizedBox(height: 4),
-                Text('Director: ${movie.director ?? 'Unknown'}'),
-                if (movie.runtime > 0) ...[
-                  const SizedBox(height: 4),
-                  Text('${movie.runtime} min'),
-                ],
-                if (movie.genres.isNotEmpty) ...[
+                Text(
+                  '${show.numberOfSeasons} Seasons • ${show.numberOfEpisodes} Episodes',
+                ),
+                const SizedBox(height: 4),
+                Text('Creator: $creator'),
+                if (show.genres.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   Wrap(
                     spacing: 6,
                     runSpacing: 6,
                     children: [
-                      for (final genre in movie.genres) Tag(label: genre.name),
+                      for (final genre in show.genres) Tag(label: genre.name),
                     ],
                   ),
                 ],
@@ -205,9 +205,9 @@ class _MovieBody extends StatelessWidget {
                 Text('Overview', style: textTheme.titleMedium),
                 const SizedBox(height: 8),
                 Text(
-                  movie.overview.isEmpty
+                  show.overview.isEmpty
                       ? 'No overview available.'
-                      : movie.overview,
+                      : show.overview,
                 ),
               ],
             ),

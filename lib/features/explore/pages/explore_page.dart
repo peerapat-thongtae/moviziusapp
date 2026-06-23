@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
+import '../../../core/widgets/overlay_icon_button.dart';
 import '../../watchlist/providers/watchlist_provider.dart';
 import '../models/explore_media_type.dart';
 import '../models/explore_video.dart';
@@ -315,7 +316,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                   Positioned(
                     right: 12,
                     bottom: 16,
-                    child: _OverlayIconButton(
+                    child: OverlayIconButton(
                       icon: isWatchlisted
                           ? Icons.bookmark
                           : Icons.bookmark_border,
@@ -362,7 +363,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                   Positioned(
                     top: 12,
                     right: 12,
-                    child: _OverlayIconButton(
+                    child: OverlayIconButton(
                       icon: _isMuted ? Icons.volume_off : Icons.volume_up,
                       onPressed: _toggleMute,
                     ),
@@ -375,7 +376,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          _OverlayIconButton(
+                          OverlayIconButton(
                             icon: Icons.refresh,
                             onPressed: _reload,
                           ),
@@ -497,32 +498,6 @@ class _MediaTypeButton extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _OverlayIconButton extends StatelessWidget {
-  const _OverlayIconButton({
-    required this.icon,
-    required this.onPressed,
-    this.color = Colors.white,
-  });
-
-  final IconData icon;
-  final VoidCallback? onPressed;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.35),
-        shape: BoxShape.circle,
-      ),
-      child: IconButton(
-        icon: Icon(icon, color: color),
-        onPressed: onPressed,
       ),
     );
   }

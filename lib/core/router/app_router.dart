@@ -4,9 +4,12 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/pages/home_page.dart';
 import '../../features/auth/pages/login_page.dart';
 import '../../features/explore/pages/explore_page.dart';
+import '../../features/movies/models/movie_discover_response.dart';
 import '../../features/movies/pages/movie_detail_page.dart';
 import '../../features/profile/pages/profile_page.dart';
 import '../../features/search/pages/search_page.dart';
+import '../../features/series/models/tv_discover_response.dart';
+import '../../features/series/pages/series_detail_page.dart';
 import '../auth/auth_notifier.dart';
 import '../auth/auth_state.dart';
 import 'go_router_refresh_stream.dart';
@@ -40,8 +43,20 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: RoutePaths.movieDetail,
         builder: (context, state) {
           final id = int.parse(state.pathParameters['id']!);
-          final title = state.extra as String?;
-          return MovieDetailPage(movieId: id, title: title);
+          final extra = state.extra;
+          final movie = extra is Movie ? extra : null;
+          final title = extra is String ? extra : movie?.title;
+          return MovieDetailPage(movieId: id, title: title, movie: movie);
+        },
+      ),
+      GoRoute(
+        path: RoutePaths.seriesDetail,
+        builder: (context, state) {
+          final id = int.parse(state.pathParameters['id']!);
+          final extra = state.extra;
+          final show = extra is TvShow ? extra : null;
+          final title = extra is String ? extra : show?.name;
+          return SeriesDetailPage(seriesId: id, title: title, show: show);
         },
       ),
       StatefulShellRoute.indexedStack(

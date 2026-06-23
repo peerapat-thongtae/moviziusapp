@@ -22,6 +22,16 @@ class MovieService {
       response.data as Map<String, dynamic>,
     );
   }
+
+  Future<MovieDiscoverResponse> discoverCatalog({int page = 1}) async {
+    final response = await _dio.get(
+      '/v2/movie/discover',
+      queryParameters: {'page': page},
+    );
+    return MovieDiscoverResponse.fromJson(
+      response.data as Map<String, dynamic>,
+    );
+  }
 }
 
 final movieServiceProvider = Provider<MovieService>(

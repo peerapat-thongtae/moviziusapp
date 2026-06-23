@@ -38,6 +38,18 @@ class WatchlistNotifier extends AsyncNotifier<Map<int, WatchlistItem>> {
     state = AsyncData(current);
   }
 
+  Future<void> markAsWatched(int id, {String mediaType = 'movie'}) async {
+    await ref.read(watchlistRepositoryProvider).setStatus(id, 'watched');
+    final current = Map<int, WatchlistItem>.of(state.value ?? {});
+    current[id] = WatchlistItem(
+      id: id,
+      mediaType: mediaType,
+      accountStatus: 'watched',
+      watchedAt: DateTime.now(),
+    );
+    state = AsyncData(current);
+  }
+
   Future<void> removeFromWatchlist(int id) async {
     await ref.read(watchlistRepositoryProvider).remove(id);
     final current = Map<int, WatchlistItem>.of(state.value ?? {});

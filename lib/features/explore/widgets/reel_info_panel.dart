@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/router/route_paths.dart';
+import '../../../core/widgets/imdb_badge.dart';
 import '../../../core/widgets/tag.dart';
 import '../models/explore_media_type.dart';
 import '../models/explore_video.dart';
@@ -48,7 +49,7 @@ class ReelInfoPanel extends StatelessWidget {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const _ImdbBadge(),
+            const ImdbBadge(),
             const SizedBox(width: 6),
             Text(
               video.voteAverage.toStringAsFixed(1),
@@ -107,28 +108,5 @@ class ReelInfoPanel extends StatelessWidget {
         'Creator: ${video.creator}',
       ],
     };
-  }
-}
-
-class _ImdbBadge extends StatelessWidget {
-  const _ImdbBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF5C518),
-        borderRadius: BorderRadius.circular(3),
-      ),
-      child: const Text(
-        'IMDb',
-        style: TextStyle(
-          color: Colors.black,
-          fontSize: 10,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-    );
   }
 }

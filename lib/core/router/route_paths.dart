@@ -7,6 +7,8 @@ class RoutePaths {
   static const explore = '/explore';
   static const profile = '/profile';
   static const movieDetail = '/movie/:id';
+  static const seriesDetail = '/series/:id';
 
   static String movieDetailPath(int id) => '/movie/$id';
+  static String seriesDetailPath(int id) => '/series/$id';
 }

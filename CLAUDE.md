@@ -169,6 +169,16 @@ Widgets should focus on presentation.
 
 Every feature should include animation or transition (e.g. page transitions, implicit animations, `AnimatedSwitcher`, Hero animations) rather than static/instant UI changes. Keep animations simple and idiomatic to Flutter/Material 3 — avoid heavy custom animation frameworks unless explicitly required.
 
+Should design UI as reuseable shared components.
+
+This app should responsive on mobile and tablet.
+
+In every features should smoothly priority first.
+
+When create UI with mock data should mock from real services function. and integrate at those function later.
+
+The designs of movies and series should be similar; when you modify one, you should modify the other as well. (ex. detail page, card, other)
+
 ---
 
 ## Authentication Rules

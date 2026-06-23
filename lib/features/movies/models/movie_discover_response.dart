@@ -185,6 +185,13 @@ class Movie {
       releaseDateTh: _objList(json['release_dates_th'], ReleaseDate.fromJson),
     );
   }
+
+  String? get director {
+    for (final c in casts?.crew ?? const []) {
+      if (c.job == 'Director') return c.name;
+    }
+    return null;
+  }
 }
 
 class BelongsToCollection {

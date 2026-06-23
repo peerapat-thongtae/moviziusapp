@@ -200,7 +200,7 @@ class ExploreRepository {
       status: movie.status,
       genres: movie.genres.map((g) => g.name).toList(),
       releaseDate: movie.releaseDate?.toIso8601String().split('T').first ?? '',
-      director: _director(movie.casts?.crew ?? const []),
+      director: movie.director ?? 'Unknown',
     );
   }
 
@@ -216,12 +216,5 @@ class ExploreRepository {
       if (v.site == Site.YOU_TUBE) return v.key;
     }
     return null;
-  }
-
-  String _director(List<Cast> crew) {
-    for (final c in crew) {
-      if (c.job == 'Director') return c.name;
-    }
-    return 'Unknown';
   }
 }
