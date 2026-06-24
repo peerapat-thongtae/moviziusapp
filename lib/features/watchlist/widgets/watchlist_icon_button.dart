@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../models/tv_watchlist_item.dart';
+import '../providers/tv_watchlist_provider.dart';
 import '../providers/watchlist_provider.dart';
 
 enum _WatchlistAction { watchlist, watched, remove }
@@ -12,23 +14,47 @@ enum _WatchlistAction { watchlist, watched, remove }
 /// instead of toggling directly, since there are now three states to choose
 /// between rather than a simple on/off.
 class WatchlistIconButton extends ConsumerWidget {
-  const WatchlistIconButton({super.key, required this.id, this.mediaType = 'movie'});
+  const WatchlistIconButton({
+    super.key,
+    required this.id,
+    this.mediaType = 'movie',
+  });
 
   final int id;
   final String mediaType;
 
+  bool get _isTv => mediaType == 'tv';
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final status = ref.watch(watchlistNotifierProvider).value?[id]?.accountStatus;
+    final String? status;
+    TvWatchlistItem? tvItem;
+    if (_isTv) {
+      tvItem = ref.watch(tvWatchlistNotifierProvider).value?[id];
+      status = tvItem?.accountStatus;
+    } else {
+      status = ref.watch(watchlistNotifierProvider).value?[id]?.accountStatus;
+    }
     final isWatched = status == 'watched';
     final isWatchlisted = status == 'watchlist';
+    final isWatching = status == 'watching';
+    final isWaitingNextSeason = status == 'waiting_next_season';
 
-    final icon = isWatched
-        ? Icons.visibility
-        : (isWatchlisted ? Icons.bookmark : Icons.bookmark_border);
+    final Widget icon;
+    if (isWatching) {
+      icon = _WatchingProgressIcon(item: tvItem);
+    } else if (isWaitingNextSeason) {
+      icon = const Icon(Icons.hourglass_top, color: Colors.amber);
+    } else if (isWatched) {
+      icon = const Icon(Icons.visibility, color: Colors.amber);
+    } else if (isWatchlisted) {
+      icon = const Icon(Icons.bookmark, color: Colors.amber);
+    } else {
+      icon = const Icon(Icons.bookmark_border);
+    }
 
     return IconButton(
-      icon: Icon(icon, color: (isWatched || isWatchlisted) ? Colors.amber : null),
+      icon: icon,
       tooltip: 'Change watchlist status',
       onPressed: () => _showStatusSheet(context, ref, status),
     );
@@ -84,15 +110,27 @@ class WatchlistIconButton extends ConsumerWidget {
     WidgetRef ref,
     _WatchlistAction action,
   ) async {
-    final notifier = ref.read(watchlistNotifierProvider.notifier);
     try {
-      switch (action) {
-        case _WatchlistAction.watchlist:
-          await notifier.addToWatchlist(id, mediaType: mediaType);
-        case _WatchlistAction.watched:
-          await notifier.markAsWatched(id, mediaType: mediaType);
-        case _WatchlistAction.remove:
-          await notifier.removeFromWatchlist(id);
+      if (_isTv) {
+        final notifier = ref.read(tvWatchlistNotifierProvider.notifier);
+        switch (action) {
+          case _WatchlistAction.watchlist:
+            await notifier.addToWatchlist(id);
+          case _WatchlistAction.watched:
+            await notifier.markAsWatched(id);
+          case _WatchlistAction.remove:
+            await notifier.removeFromWatchlist(id);
+        }
+      } else {
+        final notifier = ref.read(watchlistNotifierProvider.notifier);
+        switch (action) {
+          case _WatchlistAction.watchlist:
+            await notifier.addToWatchlist(id, mediaType: mediaType);
+          case _WatchlistAction.watched:
+            await notifier.markAsWatched(id, mediaType: mediaType);
+          case _WatchlistAction.remove:
+            await notifier.removeFromWatchlist(id);
+        }
       }
     } catch (e) {
       if (!context.mounted) return;
@@ -100,5 +138,40 @@ class WatchlistIconButton extends ConsumerWidget {
         context,
       ).showSnackBar(SnackBar(content: Text('Could not update watchlist: $e')));
     }
+  }
+}
+
+/// Play icon ringed by a progress indicator showing `countWatched /
+/// numberOfEpisodes` for a show in the `watching` state. Falls back to an
+/// indeterminate ring when the episode total is unknown (0), since a
+/// determinate `CircularProgressIndicator` with `value: 0` would render as
+/// empty instead of "in progress".
+class _WatchingProgressIcon extends StatelessWidget {
+  const _WatchingProgressIcon({required this.item});
+
+  final TvWatchlistItem? item;
+
+  @override
+  Widget build(BuildContext context) {
+    final total = item?.numberOfEpisodes ?? 0;
+    final watched = item?.countWatched ?? 0;
+    final progress = total > 0 ? (watched / total).clamp(0.0, 1.0) : null;
+
+    return SizedBox(
+      width: 24,
+      height: 24,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          CircularProgressIndicator(
+            value: progress,
+            strokeWidth: 2,
+            color: Colors.amber,
+            backgroundColor: Colors.amber.withValues(alpha: 0.2),
+          ),
+          const Icon(Icons.play_arrow, size: 14, color: Colors.amber),
+        ],
+      ),
+    );
   }
 }

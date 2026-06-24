@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/pages/home_page.dart';
 import '../../features/auth/pages/login_page.dart';
 import '../../features/explore/pages/explore_page.dart';
+import '../../features/home/pages/continue_watching_page.dart';
 import '../../features/movies/models/movie_discover_response.dart';
 import '../../features/movies/pages/movie_detail_page.dart';
 import '../../features/profile/pages/profile_page.dart';
@@ -58,6 +59,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           final title = extra is String ? extra : show?.name;
           return SeriesDetailPage(seriesId: id, title: title, show: show);
         },
+      ),
+      GoRoute(
+        path: RoutePaths.continueWatching,
+        builder: (context, state) => const ContinueWatchingPage(),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>

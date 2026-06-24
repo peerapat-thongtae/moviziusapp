@@ -3,10 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/widgets/imdb_badge.dart';
+import '../../../core/widgets/media_detail_view.dart';
 import '../../../core/widgets/overlay_icon_button.dart';
-import '../../../core/widgets/poster_banner.dart';
 import '../../../core/widgets/tag.dart';
-import '../../../core/widgets/trailer_player_dialog.dart';
 import '../../watchlist/widgets/watchlist_icon_button.dart';
 import '../models/movie_discover_response.dart';
 
@@ -133,87 +132,85 @@ class _MovieBody extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final releaseDate =
         movie.releaseDate?.toIso8601String().split('T').first ?? 'Unknown';
-    final trailerKey = _trailerKey(movie);
 
-    return SingleChildScrollView(
+    final header = Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Stack(
-            alignment: Alignment.center,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              PosterBanner(
-                imagePath: movie.backdropPath,
-                isBackdrop: true,
-                height: 260,
+              Expanded(
+                child: Text(movie.title, style: textTheme.headlineSmall),
               ),
-              if (trailerKey != null)
-                OverlayIconButton(
-                  icon: Icons.play_arrow,
-                  iconSize: 40,
-                  onPressed: () => showTrailerPlayer(context, trailerKey),
-                ),
+              WatchlistIconButton(id: movieId),
             ],
           ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          const SizedBox(height: 8),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const ImdbBadge(),
+              const SizedBox(width: 6),
+              Text(
+                movie.voteAverage.toStringAsFixed(1),
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(width: 4),
+              Text('(${movie.voteCount})', style: textTheme.bodySmall),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text('$releaseDate • ${movie.status}'),
+          const SizedBox(height: 4),
+          Text('Director: ${movie.director ?? 'Unknown'}'),
+          if (movie.runtime > 0) ...[
+            const SizedBox(height: 4),
+            Text('${movie.runtime} min'),
+          ],
+          if (movie.genres.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Text(movie.title, style: textTheme.headlineSmall),
-                    ),
-                    WatchlistIconButton(id: movieId),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const ImdbBadge(),
-                    const SizedBox(width: 6),
-                    Text(
-                      movie.voteAverage.toStringAsFixed(1),
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(width: 4),
-                    Text('(${movie.voteCount})', style: textTheme.bodySmall),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text('$releaseDate • ${movie.status}'),
-                const SizedBox(height: 4),
-                Text('Director: ${movie.director ?? 'Unknown'}'),
-                if (movie.runtime > 0) ...[
-                  const SizedBox(height: 4),
-                  Text('${movie.runtime} min'),
-                ],
-                if (movie.genres.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: [
-                      for (final genre in movie.genres) Tag(label: genre.name),
-                    ],
-                  ),
-                ],
-                const SizedBox(height: 16),
-                Text('Overview', style: textTheme.titleMedium),
-                const SizedBox(height: 8),
-                Text(
-                  movie.overview.isEmpty
-                      ? 'No overview available.'
-                      : movie.overview,
-                ),
+                for (final genre in movie.genres) Tag(label: genre.name),
               ],
             ),
-          ),
+          ],
         ],
       ),
+    );
+
+    return MediaDetailView(
+      backdropPath: movie.backdropPath,
+      trailerKey: _trailerKey(movie),
+      header: header,
+      tabs: [
+        MediaDetailTab(
+          label: 'Overview',
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.all(16),
+              sliver: SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Overview', style: textTheme.titleMedium),
+                    const SizedBox(height: 8),
+                    Text(
+                      movie.overview.isEmpty
+                          ? 'No overview available.'
+                          : movie.overview,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

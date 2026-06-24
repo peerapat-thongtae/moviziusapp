@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../home/widgets/continue_watching_section.dart';
 import '../../home/widgets/hero_slider.dart';
 
 class HomePage extends StatelessWidget {
@@ -7,6 +8,18 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: HeroSlider());
+    return const Scaffold(
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            HeroSlider(),
+            SizedBox(height: 8),
+            ContinueWatchingSection(),
+            SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
   }
 }

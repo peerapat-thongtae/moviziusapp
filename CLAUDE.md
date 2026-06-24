@@ -162,6 +162,10 @@ Pages should remain lightweight.
 
 Business logic belongs in:
 
+every section called api should has skeleton loading.
+
+every page should have pull to refresh.
+
 * providers
 * repositories
 

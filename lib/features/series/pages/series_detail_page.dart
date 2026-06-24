@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/constants/tmdb_image.dart';
 import '../../../core/widgets/imdb_badge.dart';
+import '../../../core/widgets/media_detail_view.dart';
 import '../../../core/widgets/overlay_icon_button.dart';
-import '../../../core/widgets/poster_banner.dart';
 import '../../../core/widgets/tag.dart';
-import '../../../core/widgets/trailer_player_dialog.dart';
+import '../../watchlist/providers/tv_watchlist_provider.dart';
 import '../../watchlist/widgets/watchlist_icon_button.dart';
 import '../models/tv_discover_response.dart';
+import '../providers/season_episodes_provider.dart';
 
 /// Picks the best YouTube trailer key out of [show]'s videos: an official
 /// trailer if there is one, else any YouTube video, else none. Unlike
@@ -121,98 +123,384 @@ class _FallbackBody extends StatelessWidget {
   }
 }
 
-class _SeriesBody extends StatelessWidget {
+class _SeriesBody extends ConsumerStatefulWidget {
   const _SeriesBody({required this.show, required this.seriesId});
 
   final TvShow show;
   final int seriesId;
 
   @override
+  ConsumerState<_SeriesBody> createState() => _SeriesBodyState();
+}
+
+class _SeriesBodyState extends ConsumerState<_SeriesBody> {
+  late final List<Season> _seasons;
+  int? _selectedSeasonNumber;
+
+  @override
+  void initState() {
+    super.initState();
+    _seasons = [...widget.show.seasons]
+      ..sort((a, b) => a.seasonNumber.compareTo(b.seasonNumber));
+    if (_seasons.isNotEmpty) {
+      final defaultSeason = _seasons.firstWhere(
+        (season) => season.seasonNumber == 1,
+        orElse: () => _seasons.first,
+      );
+      _selectedSeasonNumber = defaultSeason.seasonNumber;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final show = widget.show;
     final creator = show.createdBy.isNotEmpty
         ? show.createdBy.first.name
         : 'Unknown';
-    final trailerKey = _trailerKey(show);
+    final selectedSeasonNumber = _selectedSeasonNumber;
 
-    return SingleChildScrollView(
+    final header = Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Stack(
-            alignment: Alignment.center,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              PosterBanner(
-                imagePath: show.backdropPath,
-                isBackdrop: true,
-                height: 260,
+              Expanded(
+                child: Text(show.name, style: textTheme.headlineSmall),
               ),
-              if (trailerKey != null)
-                OverlayIconButton(
-                  icon: Icons.play_arrow,
-                  iconSize: 40,
-                  onPressed: () => showTrailerPlayer(context, trailerKey),
-                ),
+              WatchlistIconButton(id: widget.seriesId, mediaType: 'tv'),
             ],
           ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          const SizedBox(height: 8),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const ImdbBadge(),
+              const SizedBox(width: 6),
+              Text(
+                show.voteAverage.toStringAsFixed(1),
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(width: 4),
+              Text('(${show.voteCount})', style: textTheme.bodySmall),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text('${show.firstAirDate} • ${show.status}'),
+          const SizedBox(height: 4),
+          Text(
+            '${show.numberOfSeasons} Seasons • ${show.numberOfEpisodes} Episodes',
+          ),
+          const SizedBox(height: 4),
+          Text('Creator: $creator'),
+          if (show.genres.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Text(show.name, style: textTheme.headlineSmall),
-                    ),
-                    WatchlistIconButton(id: seriesId, mediaType: 'tv'),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const ImdbBadge(),
-                    const SizedBox(width: 6),
-                    Text(
-                      show.voteAverage.toStringAsFixed(1),
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(width: 4),
-                    Text('(${show.voteCount})', style: textTheme.bodySmall),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text('${show.firstAirDate} • ${show.status}'),
-                const SizedBox(height: 4),
-                Text(
-                  '${show.numberOfSeasons} Seasons • ${show.numberOfEpisodes} Episodes',
-                ),
-                const SizedBox(height: 4),
-                Text('Creator: $creator'),
-                if (show.genres.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: [
-                      for (final genre in show.genres) Tag(label: genre.name),
-                    ],
-                  ),
-                ],
-                const SizedBox(height: 16),
-                Text('Overview', style: textTheme.titleMedium),
-                const SizedBox(height: 8),
-                Text(
-                  show.overview.isEmpty
-                      ? 'No overview available.'
-                      : show.overview,
-                ),
+                for (final genre in show.genres) Tag(label: genre.name),
               ],
             ),
-          ),
+          ],
         ],
+      ),
+    );
+
+    return MediaDetailView(
+      backdropPath: show.backdropPath,
+      trailerKey: _trailerKey(show),
+      header: header,
+      tabs: [
+        MediaDetailTab(
+          label: 'Overview',
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.all(16),
+              sliver: SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Overview', style: textTheme.titleMedium),
+                    const SizedBox(height: 8),
+                    Text(
+                      show.overview.isEmpty
+                          ? 'No overview available.'
+                          : show.overview,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        if (_seasons.isNotEmpty && selectedSeasonNumber != null)
+          MediaDetailTab(
+            label: 'Episodes',
+            slivers: [
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                sliver: SliverToBoxAdapter(
+                  child: _SeasonSelector(
+                    seasons: _seasons,
+                    selectedSeasonNumber: selectedSeasonNumber,
+                    onSelected: (seasonNumber) =>
+                        setState(() => _selectedSeasonNumber = seasonNumber),
+                  ),
+                ),
+              ),
+              _EpisodeSliver(
+                seriesId: widget.seriesId,
+                seasonNumber: selectedSeasonNumber,
+              ),
+            ],
+          ),
+      ],
+    );
+  }
+}
+
+/// Horizontal, lazily-built (not `shrinkWrap`) row of season pills built from
+/// the show's already-fetched [Season] metadata — no extra fetch needed just
+/// to populate the selector itself.
+class _SeasonSelector extends StatelessWidget {
+  const _SeasonSelector({
+    required this.seasons,
+    required this.selectedSeasonNumber,
+    required this.onSelected,
+  });
+
+  final List<Season> seasons;
+  final int selectedSeasonNumber;
+  final ValueChanged<int> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return SizedBox(
+      height: 36,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: seasons.length,
+        itemBuilder: (context, index) {
+          final season = seasons[index];
+          final selected = season.seasonNumber == selectedSeasonNumber;
+          final label = season.seasonNumber == 0
+              ? 'Specials'
+              : 'Season ${season.seasonNumber}';
+
+          return Padding(
+            padding: EdgeInsets.only(
+              right: index == seasons.length - 1 ? 0 : 8,
+            ),
+            child: GestureDetector(
+              onTap: () => onSelected(season.seasonNumber),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                alignment: Alignment.center,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? colorScheme.primary
+                      : colorScheme.secondaryContainer,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: AnimatedDefaultTextStyle(
+                  duration: const Duration(milliseconds: 200),
+                  style: TextStyle(
+                    color: selected
+                        ? colorScheme.onPrimary
+                        : colorScheme.onSecondaryContainer,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                  child: Text(label),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// Fetches and renders the episode list for one season as a sliver, so it
+/// stays lazily built inside the page's [CustomScrollView] even when a
+/// season has many episodes.
+class _EpisodeSliver extends ConsumerWidget {
+  const _EpisodeSliver({required this.seriesId, required this.seasonNumber});
+
+  final int seriesId;
+  final int seasonNumber;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final episodesAsync = ref.watch(
+      seasonEpisodesProvider((seriesId: seriesId, seasonNumber: seasonNumber)),
+    );
+    final watchedIds = {
+      for (final e in ref
+              .watch(tvWatchlistNotifierProvider)
+              .value?[seriesId]
+              ?.episodeWatched ??
+          const [])
+        e.episodeId,
+    };
+
+    return episodesAsync.when(
+      loading: () => const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 24),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      ),
+      error: (error, stackTrace) => const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 24),
+          child: Center(child: Text('Failed to load episodes.')),
+        ),
+      ),
+      data: (episodes) => SliverPadding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        sliver: SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) => _EpisodeRow(
+              key: ValueKey('${seasonNumber}_${episodes[index].id}'),
+              seriesId: seriesId,
+              episode: episodes[index],
+              isWatched: watchedIds.contains(episodes[index].id),
+            ),
+            childCount: episodes.length,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EpisodeRow extends ConsumerWidget {
+  const _EpisodeRow({
+    super.key,
+    required this.seriesId,
+    required this.episode,
+    required this.isWatched,
+  });
+
+  final int seriesId;
+  final Episode episode;
+  final bool isWatched;
+
+  Future<void> _markWatched(BuildContext context, WidgetRef ref) async {
+    if (isWatched) return;
+    try {
+      await ref
+          .read(tvWatchlistNotifierProvider.notifier)
+          .markEpisodeWatched(
+            showId: seriesId,
+            episodeId: episode.id,
+            seasonNumber: episode.seasonNumber,
+            episodeNumber: episode.episodeNumber,
+          );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not mark episode watched: $e')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final textTheme = Theme.of(context).textTheme;
+    final stillPath = episode.stillPath;
+
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 300),
+      builder: (context, opacity, child) =>
+          Opacity(opacity: opacity, child: child),
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: SizedBox(
+                width: 120,
+                height: 68,
+                child: stillPath == null || stillPath.isEmpty
+                    ? ColoredBox(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest,
+                      )
+                    : Image.network(
+                        TmdbImage.still(stillPath),
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, progress) =>
+                            progress == null
+                                ? child
+                                : const ColoredBox(color: Colors.black26),
+                        errorBuilder: (context, error, stackTrace) =>
+                            const ColoredBox(color: Colors.black26),
+                      ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${episode.episodeNumber}. ${episode.name}',
+                    style: textTheme.titleSmall,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    [
+                      if (episode.airDate.isNotEmpty) episode.airDate,
+                      if (episode.runtime != null) '${episode.runtime}m',
+                    ].join(' • '),
+                    style: textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    episode.overview.isEmpty
+                        ? 'No overview available.'
+                        : episode.overview,
+                    style: textTheme.bodySmall,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              tooltip: isWatched ? 'Watched' : 'Mark as watched',
+              onPressed: isWatched ? null : () => _markWatched(context, ref),
+              disabledColor: Colors.amber,
+              icon: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: Icon(
+                  Icons.visibility,
+                  key: ValueKey(isWatched),
+                  color: isWatched ? Colors.amber : Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

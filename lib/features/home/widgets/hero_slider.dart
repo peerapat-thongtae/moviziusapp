@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/tmdb_image.dart';
 import '../../../core/router/route_paths.dart';
+import '../../../core/widgets/skeleton_loader.dart';
 import '../../../core/widgets/tag.dart';
 import '../models/hero_item.dart';
 import '../providers/hero_provider.dart';
@@ -66,10 +67,7 @@ class _HeroSliderState extends ConsumerState<HeroSlider> {
       width: double.infinity,
       height: height,
       child: heroItems.when(
-        loading: () => const ColoredBox(
-          color: Colors.black12,
-          child: Center(child: CircularProgressIndicator()),
-        ),
+        loading: () => const _HeroSkeleton(),
         error: (error, stackTrace) => const ColoredBox(
           color: Colors.black12,
           child: Center(child: Text('Could not load featured titles')),
@@ -203,6 +201,43 @@ class _HeroSlide extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Loading placeholder mirroring [_HeroSlide]'s layout: a full-bleed shimmer
+/// with the bottom-left tag / title / overview stack in skeleton form.
+class _HeroSkeleton extends StatelessWidget {
+  const _HeroSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        const Skeleton(borderRadius: 0),
+        SafeArea(
+          child: Align(
+            alignment: Alignment.bottomLeft,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Skeleton(width: 64, height: 24, borderRadius: 999),
+                  SizedBox(height: 12),
+                  Skeleton(width: 220, height: 24),
+                  SizedBox(height: 10),
+                  Skeleton(width: double.infinity, height: 13),
+                  SizedBox(height: 6),
+                  Skeleton(width: 200, height: 13),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

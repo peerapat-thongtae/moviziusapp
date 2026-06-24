@@ -6,6 +6,7 @@ import 'core/auth/auth_state.dart';
 import 'core/constants/app_config.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'features/watchlist/providers/tv_watchlist_provider.dart';
 import 'features/watchlist/providers/watchlist_provider.dart';
 
 void main() async {
@@ -14,18 +15,54 @@ void main() async {
   runApp(const ProviderScope(child: MoviziusApp()));
 }
 
-class MoviziusApp extends ConsumerWidget {
+class MoviziusApp extends ConsumerStatefulWidget {
   const MoviziusApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MoviziusApp> createState() => _MoviziusAppState();
+}
+
+class _MoviziusAppState extends ConsumerState<MoviziusApp>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// Re-fetch the signed-in user's watchlists whenever the app returns to the
+  /// foreground. The login `ref.listen` below only fires on the transition into
+  /// [AuthAuthenticated], so a warm resume from the background (where the auth
+  /// state never changes) would otherwise leave the watchlists stale.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed &&
+        ref.read(authNotifierProvider) is AuthAuthenticated) {
+      _refreshWatchlists();
+    }
+  }
+
+  void _refreshWatchlists() {
+    ref.read(watchlistNotifierProvider.notifier).refresh();
+    ref.read(tvWatchlistNotifierProvider.notifier).refresh();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final authState = ref.watch(authNotifierProvider);
 
     ref.listen<AuthState>(authNotifierProvider, (previous, next) {
       if (next is AuthAuthenticated) {
-        ref.read(watchlistNotifierProvider.notifier).refresh();
+        _refreshWatchlists();
       } else if (next is AuthUnauthenticated) {
         ref.invalidate(watchlistNotifierProvider);
+        ref.invalidate(tvWatchlistNotifierProvider);
       }
     });
 

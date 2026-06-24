@@ -11,4 +11,7 @@ class TmdbImage {
 
   static String poster(String path, {String size = 'w780'}) =>
       '$_baseUrl/$size$path';
+
+  static String still(String path, {String size = 'w300'}) =>
+      '$_baseUrl/$size$path';
 }
