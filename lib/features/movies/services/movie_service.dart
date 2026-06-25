@@ -23,10 +23,16 @@ class MovieService {
     );
   }
 
-  Future<MovieDiscoverResponse> discoverCatalog({int page = 1}) async {
+  /// Discover/search movies. [params] carries TMDB-style discover query params
+  /// (e.g. `sort_by`, `with_genres`, `primary_release_year`, `vote_average.gte`,
+  /// `with_text_query`) and is merged alongside [page].
+  Future<MovieDiscoverResponse> discoverCatalog({
+    int page = 1,
+    Map<String, dynamic>? params,
+  }) async {
     final response = await _dio.get(
       '/v2/movie/discover',
-      queryParameters: {'page': page},
+      queryParameters: {'page': page, ...?params},
     );
     return MovieDiscoverResponse.fromJson(
       response.data as Map<String, dynamic>,

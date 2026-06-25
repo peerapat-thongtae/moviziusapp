@@ -67,7 +67,12 @@ class _ContinueWatchingPageState extends ConsumerState<ContinueWatchingPage> {
             children: [
               GridView.builder(
                 controller: _scrollController,
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  16,
+                  16,
+                  list.isLoadingMore ? 24 + 56 : 24,
+                ),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   childAspectRatio: 0.55,

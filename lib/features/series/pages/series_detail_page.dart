@@ -140,8 +140,11 @@ class _SeriesBodyState extends ConsumerState<_SeriesBody> {
   @override
   void initState() {
     super.initState();
-    _seasons = [...widget.show.seasons]
-      ..sort((a, b) => a.seasonNumber.compareTo(b.seasonNumber));
+    _seasons =
+        widget.show.seasons
+            .where((season) => season.seasonNumber != 0)
+            .toList()
+          ..sort((a, b) => a.seasonNumber.compareTo(b.seasonNumber));
     if (_seasons.isNotEmpty) {
       final defaultSeason = _seasons.firstWhere(
         (season) => season.seasonNumber == 1,
@@ -289,9 +292,7 @@ class _SeasonSelector extends StatelessWidget {
         itemBuilder: (context, index) {
           final season = seasons[index];
           final selected = season.seasonNumber == selectedSeasonNumber;
-          final label = season.seasonNumber == 0
-              ? 'Specials'
-              : 'Season ${season.seasonNumber}';
+          final label = 'Season ${season.seasonNumber}';
 
           return Padding(
             padding: EdgeInsets.only(

@@ -12,10 +12,16 @@ class SeriesService {
   final Dio _dio;
   final Dio _tmdbDio;
 
-  Future<TvDiscoverResponse> discover({int page = 1}) async {
+  /// Discover/search TV series. [params] carries TMDB-style discover query
+  /// params (e.g. `sort_by`, `with_genres`, `first_air_date_year`,
+  /// `vote_average.gte`, `with_text_query`) and is merged alongside [page].
+  Future<TvDiscoverResponse> discover({
+    int page = 1,
+    Map<String, dynamic>? params,
+  }) async {
     final response = await _dio.get(
       '/v2/tv/discover',
-      queryParameters: {'page': page},
+      queryParameters: {'page': page, ...?params},
     );
     return TvDiscoverResponse.fromJson(response.data as Map<String, dynamic>);
   }
