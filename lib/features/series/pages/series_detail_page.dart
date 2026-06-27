@@ -136,6 +136,7 @@ class _SeriesBody extends ConsumerStatefulWidget {
 class _SeriesBodyState extends ConsumerState<_SeriesBody> {
   late final List<Season> _seasons;
   int? _selectedSeasonNumber;
+  bool _showUnwatchedOnly = false;
 
   @override
   void initState() {
@@ -162,6 +163,32 @@ class _SeriesBodyState extends ConsumerState<_SeriesBody> {
         ? show.createdBy.first.name
         : 'Unknown';
     final selectedSeasonNumber = _selectedSeasonNumber;
+
+    final watchedEpisodeIdsBySeason = <int, Set<int>>{};
+    for (final e
+        in ref
+                .watch(tvWatchlistNotifierProvider)
+                .value?[widget.seriesId]
+                ?.episodeWatched ??
+            const []) {
+      (watchedEpisodeIdsBySeason[e.seasonNumber] ??= {}).add(e.episodeId);
+    }
+    final visibleSeasons = _showUnwatchedOnly
+        ? _seasons
+              .where(
+                (s) =>
+                    (watchedEpisodeIdsBySeason[s.seasonNumber]?.length ?? 0) <
+                    s.episodeCount,
+              )
+              .toList()
+        : _seasons;
+    final effectiveSelectedSeasonNumber =
+        selectedSeasonNumber != null &&
+            visibleSeasons.any((s) => s.seasonNumber == selectedSeasonNumber)
+        ? selectedSeasonNumber
+        : (visibleSeasons.isNotEmpty
+              ? visibleSeasons.first.seasonNumber
+              : null);
 
     final header = Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -240,25 +267,64 @@ class _SeriesBodyState extends ConsumerState<_SeriesBody> {
             ),
           ],
         ),
-        if (_seasons.isNotEmpty && selectedSeasonNumber != null)
+        if (_seasons.isNotEmpty)
           MediaDetailTab(
             label: 'Episodes',
             slivers: [
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                 sliver: SliverToBoxAdapter(
-                  child: _SeasonSelector(
-                    seasons: _seasons,
-                    selectedSeasonNumber: selectedSeasonNumber,
-                    onSelected: (seasonNumber) =>
-                        setState(() => _selectedSeasonNumber = seasonNumber),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      InkWell(
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: () => setState(
+                          () => _showUnwatchedOnly = !_showUnwatchedOnly,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Checkbox(
+                              value: _showUnwatchedOnly,
+                              onChanged: (value) => setState(
+                                () => _showUnwatchedOnly = value ?? false,
+                              ),
+                            ),
+                            const Text('Unwatched only'),
+                          ],
+                        ),
+                      ),
+                      if (visibleSeasons.isNotEmpty &&
+                          effectiveSelectedSeasonNumber != null) ...[
+                        const SizedBox(height: 4),
+                        _SeasonSelector(
+                          seasons: visibleSeasons,
+                          selectedSeasonNumber: effectiveSelectedSeasonNumber,
+                          onSelected: (seasonNumber) => setState(
+                            () => _selectedSeasonNumber = seasonNumber,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               ),
-              _EpisodeSliver(
-                seriesId: widget.seriesId,
-                seasonNumber: selectedSeasonNumber,
-              ),
+              if (visibleSeasons.isEmpty)
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 32),
+                    child: Center(
+                      child: Text('All caught up — no unwatched episodes.'),
+                    ),
+                  ),
+                )
+              else if (effectiveSelectedSeasonNumber != null)
+                _EpisodeSliver(
+                  seriesId: widget.seriesId,
+                  seasonNumber: effectiveSelectedSeasonNumber,
+                  showUnwatchedOnly: _showUnwatchedOnly,
+                ),
             ],
           ),
       ],
@@ -337,10 +403,15 @@ class _SeasonSelector extends StatelessWidget {
 /// stays lazily built inside the page's [CustomScrollView] even when a
 /// season has many episodes.
 class _EpisodeSliver extends ConsumerWidget {
-  const _EpisodeSliver({required this.seriesId, required this.seasonNumber});
+  const _EpisodeSliver({
+    required this.seriesId,
+    required this.seasonNumber,
+    required this.showUnwatchedOnly,
+  });
 
   final int seriesId;
   final int seasonNumber;
+  final bool showUnwatchedOnly;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -369,20 +440,26 @@ class _EpisodeSliver extends ConsumerWidget {
           child: Center(child: Text('Failed to load episodes.')),
         ),
       ),
-      data: (episodes) => SliverPadding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        sliver: SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (context, index) => _EpisodeRow(
-              key: ValueKey('${seasonNumber}_${episodes[index].id}'),
-              seriesId: seriesId,
-              episode: episodes[index],
-              isWatched: watchedIds.contains(episodes[index].id),
+      data: (episodes) {
+        final visibleEpisodes = showUnwatchedOnly
+            ? episodes.where((e) => !watchedIds.contains(e.id)).toList()
+            : episodes;
+
+        return SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          sliver: SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) => _EpisodeRow(
+                key: ValueKey('${seasonNumber}_${visibleEpisodes[index].id}'),
+                seriesId: seriesId,
+                episode: visibleEpisodes[index],
+                isWatched: watchedIds.contains(visibleEpisodes[index].id),
+              ),
+              childCount: visibleEpisodes.length,
             ),
-            childCount: episodes.length,
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

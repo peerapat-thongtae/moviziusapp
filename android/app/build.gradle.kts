@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.moviziusapp"
+    namespace = "com.wbz.movizius"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -21,7 +21,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.moviziusapp"
+        applicationId = "com.wbz.movizius"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -40,7 +40,7 @@ android {
         // unverified https deep link on Auth0's server-initiated redirect after
         // login - it just loads the callback URL as a normal page and 404s.
         manifestPlaceholders["auth0Domain"] = "dev-dxsfu1ajem7xnzwi.us.auth0.com"
-        manifestPlaceholders["auth0Scheme"] = "com.example.moviziusapp"
+        manifestPlaceholders["auth0Scheme"] = "com.wbz.movizius"
     }
 
     buildTypes {

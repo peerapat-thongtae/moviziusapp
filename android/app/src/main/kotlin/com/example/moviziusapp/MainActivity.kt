@@ -1,4 +1,4 @@
-package com.example.moviziusapp
+package com.wbz.movizius
 
 import io.flutter.embedding.android.FlutterActivity
 

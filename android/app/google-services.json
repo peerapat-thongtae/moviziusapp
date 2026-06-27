@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "165014085152",
+    "project_id": "movizius",
+    "storage_bucket": "movizius.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:165014085152:android:be15588d6a6e6c71a66645",
+        "android_client_info": {
+          "package_name": "com.wbz.movizius"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBQtYhZGW_4w0bERLqj2E0URjdzYYTXfh4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

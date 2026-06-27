@@ -22,7 +22,7 @@ class Auth0AuthRepository implements AuthRepository {
   /// `auth0Scheme` manifest placeholder and the applicationId. Using a custom
   /// scheme instead of "https" avoids depending on Android App Links
   /// verification for the redirect back into the app after login/logout.
-  static const _androidScheme = 'com.example.moviziusapp';
+  static const _androidScheme = 'com.wbz.movizius';
 
   @override
   Future<AuthState> restoreSession() async {
