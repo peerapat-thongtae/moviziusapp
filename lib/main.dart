@@ -1,17 +1,21 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/auth/auth_notifier.dart';
 import 'core/auth/auth_state.dart';
 import 'core/constants/app_config.dart';
+import 'core/notifications/providers.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'features/watchlist/providers/tv_watchlist_provider.dart';
 import 'features/watchlist/providers/watchlist_provider.dart';
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await AppConfig.load();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const ProviderScope(child: MoviziusApp()));
 }
 
@@ -28,6 +32,7 @@ class _MoviziusAppState extends ConsumerState<MoviziusApp>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    ref.read(fcmServiceProvider).initialize();
   }
 
   @override
@@ -60,6 +65,7 @@ class _MoviziusAppState extends ConsumerState<MoviziusApp>
     ref.listen<AuthState>(authNotifierProvider, (previous, next) {
       if (next is AuthAuthenticated) {
         _refreshWatchlists();
+        ref.read(fcmServiceProvider).registerCurrentToken();
       } else if (next is AuthUnauthenticated) {
         ref.invalidate(watchlistNotifierProvider);
         ref.invalidate(tvWatchlistNotifierProvider);

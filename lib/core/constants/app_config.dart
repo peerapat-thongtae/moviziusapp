@@ -11,6 +11,7 @@ class AppConfig {
   static String get auth0ClientId => _require('AUTH0_CLIENT_ID');
   static String get auth0ApiAudience => _require('AUTH0_API_AUDIENCE');
   static String get moviziusApiUrl => _require('MOVIZIUS_API_URL');
+  static String get moviziusGoServiceUrl => _require('MOVIZIUS_GO_SERVICE_URL');
   static String get tmdbApiUrl => _require('TMDB_API_URL');
   static String get tmdbApiKey => _require('TMDB_API_KEY');
   static String get tmdbApiV4Key => _require('TMDB_API_V4_KEY');
