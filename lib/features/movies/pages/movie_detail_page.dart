@@ -6,6 +6,7 @@ import '../../../core/widgets/imdb_badge.dart';
 import '../../../core/widgets/media_detail_view.dart';
 import '../../../core/widgets/overlay_icon_button.dart';
 import '../../../core/widgets/tag.dart';
+import '../../watchlist/providers/watchlist_provider.dart';
 import '../../watchlist/widgets/watchlist_icon_button.dart';
 import '../models/movie_discover_response.dart';
 
@@ -59,7 +60,14 @@ class MovieDetailPage extends ConsumerWidget {
                 Opacity(opacity: opacity, child: child),
             child: movie == null
                 ? _FallbackBody(movieId: movieId, title: title)
-                : _MovieBody(movie: movie, movieId: movieId),
+                : _MovieBody(
+                    movie: movie,
+                    movieId: movieId,
+                    onRefresh: () async {
+                      ref.invalidate(watchlistNotifierProvider);
+                      await ref.read(watchlistNotifierProvider.future);
+                    },
+                  ),
           ),
           SafeArea(
             child: Padding(
@@ -122,10 +130,15 @@ class _FallbackBody extends StatelessWidget {
 }
 
 class _MovieBody extends StatelessWidget {
-  const _MovieBody({required this.movie, required this.movieId});
+  const _MovieBody({
+    required this.movie,
+    required this.movieId,
+    this.onRefresh,
+  });
 
   final Movie movie;
   final int movieId;
+  final Future<void> Function()? onRefresh;
 
   @override
   Widget build(BuildContext context) {
@@ -186,6 +199,7 @@ class _MovieBody extends StatelessWidget {
     return MediaDetailView(
       backdropPath: movie.backdropPath,
       trailerKey: _trailerKey(movie),
+      onRefresh: onRefresh,
       header: header,
       tabs: [
         MediaDetailTab(

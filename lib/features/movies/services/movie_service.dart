@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:moviziusapp/core/network/go_service_dio_provider.dart';
 
-import '../../../core/network/dio_provider.dart';
 import '../models/movie_discover_response.dart';
 
 class MovieService {
@@ -31,7 +31,7 @@ class MovieService {
     Map<String, dynamic>? params,
   }) async {
     final response = await _dio.get(
-      '/v2/movie/discover',
+      '/movie/discover',
       queryParameters: {'page': page, ...?params},
     );
     return MovieDiscoverResponse.fromJson(
@@ -41,5 +41,5 @@ class MovieService {
 }
 
 final movieServiceProvider = Provider<MovieService>(
-  (ref) => MovieService(ref.watch(dioProvider)),
+  (ref) => MovieService(ref.watch(goServiceDioProvider)),
 );

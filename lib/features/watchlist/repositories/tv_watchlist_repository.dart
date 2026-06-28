@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:moviziusapp/core/network/go_service_dio_provider.dart';
 
-import '../../../core/network/dio_provider.dart';
 import '../models/tv_watchlist_item.dart';
 
 /// TV counterpart of [WatchlistRepository], talking to `/v2/tv` instead of
@@ -14,7 +14,7 @@ class TvWatchlistRepository {
   final Dio _dio;
 
   Future<List<TvWatchlistItem>> fetchAll() async {
-    final response = await _dio.get('/v2/tv');
+    final response = await _dio.get('/tv/states');
     final data = response.data;
     // Accept either a bare array or a `{ results: [...] }` wrapper, matching
     // the movie endpoint's tolerance for both shapes.
@@ -31,11 +31,11 @@ class TvWatchlistRepository {
   }
 
   Future<void> setStatus(int id, String status) {
-    return _dio.post('/v2/tv', data: {'id': id, 'status': status});
+    return _dio.post('/tv', data: {'id': id, 'status': status});
   }
 
   Future<void> remove(int id) {
-    return _dio.delete('/v2/tv/$id');
+    return _dio.delete('/tv/$id');
   }
 
   /// Marks one or more episodes of show [id] as watched. Append-only: the API
@@ -45,7 +45,7 @@ class TvWatchlistRepository {
     List<({int seasonNumber, int episodeNumber})> episodes,
   ) {
     return _dio.post(
-      '/v2/tv/episodes',
+      '/tv/episodes',
       data: {
         'id': id,
         'episodes': [
@@ -61,5 +61,5 @@ class TvWatchlistRepository {
 }
 
 final tvWatchlistRepositoryProvider = Provider<TvWatchlistRepository>(
-  (ref) => TvWatchlistRepository(ref.watch(dioProvider)),
+  (ref) => TvWatchlistRepository(ref.watch(goServiceDioProvider)),
 );

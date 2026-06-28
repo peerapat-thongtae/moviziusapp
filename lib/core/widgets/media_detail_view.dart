@@ -28,18 +28,21 @@ class MediaDetailView extends StatelessWidget {
     this.trailerKey,
     required this.header,
     required this.tabs,
+    this.onRefresh,
   });
 
   final String backdropPath;
   final String? trailerKey;
   final Widget header;
   final List<MediaDetailTab> tabs;
+  final Future<void> Function()? onRefresh;
 
   @override
   Widget build(BuildContext context) {
     final trailerKey = this.trailerKey;
+    final onRefresh = this.onRefresh;
 
-    return DefaultTabController(
+    final content = DefaultTabController(
       length: tabs.length,
       child: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
@@ -93,6 +96,15 @@ class MediaDetailView extends StatelessWidget {
         ),
       ),
     );
+
+    if (onRefresh != null) {
+      return RefreshIndicator(
+        onRefresh: onRefresh,
+        notificationPredicate: (n) => n.depth == 0 || n.depth == 2,
+        child: content,
+      );
+    }
+    return content;
   }
 }
 

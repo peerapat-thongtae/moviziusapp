@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:moviziusapp/core/network/go_service_dio_provider.dart';
 
 import '../../../core/constants/app_config.dart';
-import '../../../core/network/dio_provider.dart';
 import '../../../core/network/tmdb_dio_provider.dart';
 import '../models/tv_discover_response.dart';
 
@@ -20,7 +20,7 @@ class SeriesService {
     Map<String, dynamic>? params,
   }) async {
     final response = await _dio.get(
-      '/v2/tv/discover',
+      '/tv/discover',
       queryParameters: {'page': page, ...?params},
     );
     return TvDiscoverResponse.fromJson(response.data as Map<String, dynamic>);
@@ -31,8 +31,12 @@ class SeriesService {
   /// per-item `count_watched` drives the home "Continue Watching" progress bar.
   Future<TvDiscoverResponse> paginate(String status, {int page = 1}) async {
     final response = await _dio.get(
-      '/v2/tv/paginate/$status',
-      queryParameters: {'page': page, 'with_imdb_rating': true},
+      '/tv/discover',
+      queryParameters: {
+        'page': page,
+        'with_account_status': 'watching',
+        'sort_by': 'max_watched_ep.desc',
+      },
     );
     return TvDiscoverResponse.fromJson(response.data as Map<String, dynamic>);
   }
@@ -52,5 +56,8 @@ class SeriesService {
 }
 
 final seriesServiceProvider = Provider<SeriesService>(
-  (ref) => SeriesService(ref.watch(dioProvider), ref.watch(tmdbDioProvider)),
+  (ref) => SeriesService(
+    ref.watch(goServiceDioProvider),
+    ref.watch(tmdbDioProvider),
+  ),
 );

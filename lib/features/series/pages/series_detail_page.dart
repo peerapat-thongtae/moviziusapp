@@ -11,6 +11,7 @@ import '../../watchlist/providers/tv_watchlist_provider.dart';
 import '../../watchlist/widgets/watchlist_icon_button.dart';
 import '../models/tv_discover_response.dart';
 import '../providers/season_episodes_provider.dart';
+import '../providers/continue_watching_provider.dart';
 
 /// Picks the best YouTube trailer key out of [show]'s videos: an official
 /// trailer if there is one, else any YouTube video, else none. Unlike
@@ -243,6 +244,12 @@ class _SeriesBodyState extends ConsumerState<_SeriesBody> {
     return MediaDetailView(
       backdropPath: show.backdropPath,
       trailerKey: _trailerKey(show),
+      onRefresh: () async {
+        ref.invalidate(tvWatchlistNotifierProvider);
+        ref.invalidate(continueWatchingProvider);
+        ref.invalidate(seasonEpisodesProvider);
+        await ref.read(tvWatchlistNotifierProvider.future);
+      },
       header: header,
       tabs: [
         MediaDetailTab(

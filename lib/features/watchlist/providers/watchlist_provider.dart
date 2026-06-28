@@ -11,7 +11,10 @@ final watchlistNotifierProvider =
 
 class WatchlistNotifier extends AsyncNotifier<Map<int, WatchlistItem>> {
   @override
-  Future<Map<int, WatchlistItem>> build() async => {};
+  Future<Map<int, WatchlistItem>> build() async {
+    final items = await ref.read(watchlistRepositoryProvider).fetchAll();
+    return {for (final item in items) item.id: item};
+  }
 
   Future<void> refresh() async {
     state = const AsyncLoading();

@@ -257,15 +257,7 @@ Before adding a new dependency:
 
 ## Testing
 
-Priority order:
-
-1. Repository tests
-2. Provider tests
-3. Widget tests
-
-Avoid excessive mocking.
-
-Focus on business-critical flows.
+No need test for this project.
 
 ---
 

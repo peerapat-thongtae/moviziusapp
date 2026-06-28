@@ -14,7 +14,10 @@ final tvWatchlistNotifierProvider =
 
 class TvWatchlistNotifier extends AsyncNotifier<Map<int, TvWatchlistItem>> {
   @override
-  Future<Map<int, TvWatchlistItem>> build() async => {};
+  Future<Map<int, TvWatchlistItem>> build() async {
+    final items = await ref.read(tvWatchlistRepositoryProvider).fetchAll();
+    return {for (final item in items) item.id: item};
+  }
 
   Future<void> refresh() async {
     state = const AsyncLoading();

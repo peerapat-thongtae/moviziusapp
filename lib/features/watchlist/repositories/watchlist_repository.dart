@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:moviziusapp/core/network/go_service_dio_provider.dart';
 
-import '../../../core/network/dio_provider.dart';
 import '../models/watchlist_item.dart';
 
 class WatchlistRepository {
@@ -10,7 +10,7 @@ class WatchlistRepository {
   final Dio _dio;
 
   Future<List<WatchlistItem>> fetchAll() async {
-    final response = await _dio.get('/v2/movie');
+    final response = await _dio.get('/tv/states');
     final data = response.data;
     // Some Movizius list endpoints (e.g. `/v2/movie/random`) wrap their
     // array in `{ results: [...] }` rather than returning a bare array, so
@@ -28,14 +28,14 @@ class WatchlistRepository {
   }
 
   Future<void> setStatus(int id, String status) {
-    return _dio.post('/v2/movie', data: {'id': id, 'status': status});
+    return _dio.post('/movie', data: {'id': id, 'status': status});
   }
 
   Future<void> remove(int id) {
-    return _dio.delete('/v2/movie/$id');
+    return _dio.delete('/movie/$id');
   }
 }
 
 final watchlistRepositoryProvider = Provider<WatchlistRepository>(
-  (ref) => WatchlistRepository(ref.watch(dioProvider)),
+  (ref) => WatchlistRepository(ref.watch(goServiceDioProvider)),
 );
