@@ -1,4 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -7,6 +8,7 @@ import 'core/auth/auth_state.dart';
 import 'core/constants/app_config.dart';
 import 'core/notifications/providers.dart';
 import 'core/router/app_router.dart';
+import 'core/router/route_paths.dart';
 import 'core/theme/app_theme.dart';
 import 'features/watchlist/providers/tv_watchlist_provider.dart';
 import 'features/watchlist/providers/watchlist_provider.dart';
@@ -33,6 +35,25 @@ class _MoviziusAppState extends ConsumerState<MoviziusApp>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     ref.read(fcmServiceProvider).initialize();
+    _setupNotificationNavigation();
+  }
+
+  void _setupNotificationNavigation() {
+    // App backgrounded → tapped notification
+    FirebaseMessaging.onMessageOpenedApp.listen(_handleNotificationTap);
+
+    // App terminated → opened via notification
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final initial = await FirebaseMessaging.instance.getInitialMessage();
+      if (initial != null) _handleNotificationTap(initial);
+    });
+  }
+
+  void _handleNotificationTap(RemoteMessage message) {
+    final type = message.data['type'] as String?;
+    if (type == 'tv_airing_today') {
+      ref.read(goRouterProvider).go(RoutePaths.calendar);
+    }
   }
 
   @override

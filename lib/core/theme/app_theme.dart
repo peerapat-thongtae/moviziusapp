@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 class AppTheme {
   AppTheme._();
 
+  static const _seed = Colors.deepPurple;
+
   static ThemeData light() {
     return ThemeData(
       useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+      colorScheme: ColorScheme.fromSeed(seedColor: _seed),
     );
   }
 
@@ -14,7 +16,7 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: Colors.deepPurple,
+        seedColor: _seed,
         brightness: Brightness.dark,
       ),
     );

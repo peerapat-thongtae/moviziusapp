@@ -38,6 +38,13 @@ class _SearchPageState extends State<SearchPage>
     return Scaffold(
       appBar: AppBar(
         title: const Text('Search'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.calendar_month),
+            tooltip: 'Airing Today',
+            onPressed: () => context.push(RoutePaths.calendar),
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           tabs: const [

@@ -10,7 +10,7 @@ class WatchlistRepository {
   final Dio _dio;
 
   Future<List<WatchlistItem>> fetchAll() async {
-    final response = await _dio.get('/tv/states');
+    final response = await _dio.get('/movie/states');
     final data = response.data;
     // Some Movizius list endpoints (e.g. `/v2/movie/random`) wrap their
     // array in `{ results: [...] }` rather than returning a bare array, so
