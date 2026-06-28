@@ -67,10 +67,13 @@ class TvWatchlistNotifier extends AsyncNotifier<Map<int, TvWatchlistItem>> {
     required int seasonNumber,
     required int episodeNumber,
   }) async {
-    await ref.read(tvWatchlistRepositoryProvider).markEpisodesWatched(
-      showId,
-      [(seasonNumber: seasonNumber, episodeNumber: episodeNumber)],
-    );
+    await ref.read(tvWatchlistRepositoryProvider).markEpisodesWatched(showId, [
+      (
+        seasonNumber: seasonNumber,
+        episodeNumber: episodeNumber,
+        episodeId: episodeId,
+      ),
+    ]);
     final current = Map<int, TvWatchlistItem>.of(state.value ?? {});
     final existing = current[showId];
     if (existing != null &&

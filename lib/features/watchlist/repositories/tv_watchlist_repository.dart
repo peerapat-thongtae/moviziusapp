@@ -42,7 +42,7 @@ class TvWatchlistRepository {
   /// has no un-watch counterpart yet, so episodes can only be added.
   Future<void> markEpisodesWatched(
     int id,
-    List<({int seasonNumber, int episodeNumber})> episodes,
+    List<({int seasonNumber, int episodeNumber, int episodeId})> episodes,
   ) {
     return _dio.post(
       '/tv/episodes',
@@ -53,6 +53,7 @@ class TvWatchlistRepository {
             {
               'season_number': e.seasonNumber,
               'episode_number': e.episodeNumber,
+              'episode_id': e.episodeId,
             },
         ],
       },
