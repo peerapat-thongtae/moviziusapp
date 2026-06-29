@@ -38,12 +38,12 @@ class WatchlistIconButton extends ConsumerWidget {
     final isWatched = status == 'watched';
     final isWatchlisted = status == 'watchlist';
     final isWatching = status == 'watching';
-    final isWaitingNextSeason = status == 'waiting_next_season';
+    final isWaitingNextEP = status == 'waiting_next_ep';
 
     final Widget icon;
     if (isWatching) {
       icon = _WatchingProgressIcon(item: tvItem);
-    } else if (isWaitingNextSeason) {
+    } else if (isWaitingNextEP) {
       icon = const Icon(Icons.hourglass_top, color: Colors.amber);
     } else if (isWatched) {
       icon = const Icon(Icons.visibility, color: Colors.amber);
