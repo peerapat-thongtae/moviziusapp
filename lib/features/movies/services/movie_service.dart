@@ -23,9 +23,19 @@ class MovieService {
     );
   }
 
+  Future<MovieDiscoverResponse> search(String q, {int page = 1}) async {
+    final response = await _dio.get(
+      '/movie/search',
+      queryParameters: {'q': q, 'page': page},
+    );
+    return MovieDiscoverResponse.fromJson(
+      response.data as Map<String, dynamic>,
+    );
+  }
+
   /// Discover/search movies. [params] carries TMDB-style discover query params
-  /// (e.g. `sort_by`, `with_genres`, `primary_release_year`, `vote_average.gte`,
-  /// `with_text_query`) and is merged alongside [page].
+  /// (e.g. `sort_by`, `with_genres`, `primary_release_year`, `vote_average.gte`)
+  /// and is merged alongside [page].
   Future<MovieDiscoverResponse> discoverCatalog({
     int page = 1,
     Map<String, dynamic>? params,

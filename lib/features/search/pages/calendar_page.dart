@@ -5,9 +5,11 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_timezone.dart';
 import '../../../core/router/route_paths.dart';
 import '../../../core/widgets/media_row_card.dart';
+import '../../movies/models/movie_discover_response.dart';
 import '../../series/models/tv_discover_response.dart';
 import '../../watchlist/widgets/watchlist_icon_button.dart';
 import '../providers/airing_today_provider.dart';
+import '../providers/releasing_today_provider.dart';
 
 class CalendarPage extends StatefulWidget {
   const CalendarPage({super.key});
@@ -50,30 +52,127 @@ class _CalendarPageState extends State<CalendarPage>
   }
 }
 
-class _MoviesTab extends StatelessWidget {
+class _MoviesTab extends ConsumerStatefulWidget {
   const _MoviesTab();
 
   @override
+  ConsumerState<_MoviesTab> createState() => _MoviesTabState();
+}
+
+class _MoviesTabState extends ConsumerState<_MoviesTab> {
+  static const _daysBefore = 2;
+  static const _daysAfter = 5;
+
+  final DateTime _today = DateTime.now();
+  late DateTime _selectedDate;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedDate = _normalize(_today);
+  }
+
+  DateTime _normalize(DateTime d) => DateTime(d.year, d.month, d.day);
+
+  DateTime _dateAt(int offset) =>
+      _normalize(_today).add(Duration(days: offset));
+
+  List<DateTime> get _dates => [
+    for (int i = -_daysBefore; i <= _daysAfter; i++) _dateAt(i),
+  ];
+
+  @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.movie_creation_outlined,
-            size: 64,
-            color: colorScheme.onSurfaceVariant,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Coming Soon',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
+    return Column(
+      children: [
+        _DateSlider(
+          dates: _dates,
+          today: _normalize(_today),
+          selected: _selectedDate,
+          onSelected: (date) => setState(() => _selectedDate = date),
+        ),
+        Expanded(child: _MoviesList(date: _selectedDate)),
+      ],
+    );
+  }
+}
+
+class _MoviesList extends ConsumerWidget {
+  const _MoviesList({required this.date});
+
+  final DateTime date;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final async = ref.watch(releasingTodayProvider(date));
+
+    return async.when(
+      loading: () => ListView.separated(
+        padding: const EdgeInsets.all(12),
+        itemCount: 6,
+        separatorBuilder: (_, _) => const SizedBox(height: 8),
+        itemBuilder: (_, _) => const MediaRowCardSkeleton(),
       ),
+      error: (error, _) => Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, size: 48),
+            const SizedBox(height: 12),
+            Text(
+              'Could not load movies',
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => ref.invalidate(releasingTodayProvider(date)),
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      ),
+      data: (movies) {
+        if (movies.isEmpty) {
+          return const Center(child: Text('No movies releasing on this date'));
+        }
+        return RefreshIndicator(
+          onRefresh: () async => ref.invalidate(releasingTodayProvider(date)),
+          child: ListView.separated(
+            padding: const EdgeInsets.all(12),
+            itemCount: movies.length,
+            separatorBuilder: (_, _) => const SizedBox(height: 8),
+            itemBuilder: (context, i) => _MovieCard(movie: movies[i]),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _MovieCard extends StatelessWidget {
+  const _MovieCard({required this.movie});
+
+  final Movie movie;
+
+  String? _formatDate(DateTime? date) {
+    if (date == null) return null;
+    final local = date.toUtc().add(kAppTimezoneOffset);
+    return '${local.year.toString().padLeft(4, '0')}-'
+        '${local.month.toString().padLeft(2, '0')}-'
+        '${local.day.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MediaRowCard(
+      posterPath: movie.posterPath,
+      title: movie.title,
+      voteAverage: movie.voteAverage,
+      subtitleLine1: _formatDate(movie.releaseDate),
+      subtitleLine2: movie.genres.isNotEmpty ? movie.genres.first.name : null,
+      trailing: WatchlistIconButton(id: movie.id, mediaType: 'movie'),
+      onTap: () =>
+          context.push(RoutePaths.movieDetailPath(movie.id), extra: movie),
     );
   }
 }

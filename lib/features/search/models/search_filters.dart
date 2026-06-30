@@ -15,15 +15,11 @@ class FilterOption<T> {
 /// their UIs stay symmetric (see CLAUDE.md).
 class SearchFilters {
   const SearchFilters({
-    this.query = '',
     this.sortBy = 'popularity.desc',
     this.genreId,
     this.year,
     this.minRating,
   });
-
-  /// Free-text keyword, sent as `with_text_query` when non-empty.
-  final String query;
 
   /// TMDB `sort_by` value, e.g. `popularity.desc`.
   final String sortBy;
@@ -38,7 +34,6 @@ class SearchFilters {
   final double? minRating;
 
   SearchFilters copyWith({
-    String? query,
     String? sortBy,
     int? genreId,
     bool clearGenre = false,
@@ -48,7 +43,6 @@ class SearchFilters {
     bool clearRating = false,
   }) {
     return SearchFilters(
-      query: query ?? this.query,
       sortBy: sortBy ?? this.sortBy,
       genreId: clearGenre ? null : (genreId ?? this.genreId),
       year: clearYear ? null : (year ?? this.year),
@@ -63,7 +57,6 @@ class SearchFilters {
         kind == MediaKind.movie ? 'primary_release_year' : 'first_air_date_year';
     return {
       'sort_by': sortBy,
-      if (query.trim().isNotEmpty) 'with_text_query': query.trim(),
       if (genreId != null) 'with_genres': genreId,
       if (year != null) yearKey: year,
       if (minRating != null) 'vote_average.gte': minRating,

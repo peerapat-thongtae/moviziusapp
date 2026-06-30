@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,33 +13,78 @@ import '../providers/search_providers.dart';
 import '../widgets/search_filter_bar.dart';
 import '../widgets/search_results_grid.dart';
 
-/// Search experience: two tabs (Movies / TV Series), each with a debounced
-/// search box, a filter bar (sort / genre / year / min rating) and a 2-column
-/// poster grid backed by the discover endpoints. The two tabs are intentionally
-/// symmetric (see CLAUDE.md) — they differ only in their data binding.
-class SearchPage extends StatefulWidget {
+class SearchPage extends ConsumerStatefulWidget {
   const SearchPage({super.key});
 
   @override
-  State<SearchPage> createState() => _SearchPageState();
+  ConsumerState<SearchPage> createState() => _SearchPageState();
 }
 
-class _SearchPageState extends State<SearchPage>
+class _SearchPageState extends ConsumerState<SearchPage>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController =
       TabController(length: 2, vsync: this);
+  final _searchController = TextEditingController();
+  Timer? _debounce;
+  String _query = '';
 
   @override
   void dispose() {
+    _debounce?.cancel();
+    _searchController.dispose();
     _tabController.dispose();
     super.dispose();
   }
 
+  void _onQueryChanged(String value) {
+    setState(() => _query = value);
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 450), () {
+      ref.read(movieSearchProvider.notifier).setQuery(value);
+      ref.read(tvSearchProvider.notifier).setQuery(value);
+    });
+  }
+
+  void _clearQuery() {
+    _searchController.clear();
+    _debounce?.cancel();
+    setState(() => _query = '');
+    ref.read(movieSearchProvider.notifier).setQuery('');
+    ref.read(tvSearchProvider.notifier).setQuery('');
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isSearchMode = _query.trim().isNotEmpty;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Search'),
+        titleSpacing: 16,
+        title: TextField(
+          controller: _searchController,
+          textInputAction: TextInputAction.search,
+          onChanged: _onQueryChanged,
+          decoration: InputDecoration(
+            hintText: 'Search movies & TV series…',
+            prefixIcon: const Icon(Icons.search),
+            suffixIcon: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              child: _query.isEmpty
+                  ? const SizedBox.shrink()
+                  : IconButton(
+                      key: const ValueKey('clear'),
+                      icon: const Icon(Icons.close),
+                      onPressed: _clearQuery,
+                    ),
+            ),
+            filled: true,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: const EdgeInsets.symmetric(vertical: 0),
+          ),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.calendar_month),
@@ -55,9 +102,9 @@ class _SearchPageState extends State<SearchPage>
       ),
       body: TabBarView(
         controller: _tabController,
-        children: const [
-          _MovieSearchTab(),
-          _TvSearchTab(),
+        children: [
+          _MovieSearchTab(isSearchMode: isSearchMode),
+          _TvSearchTab(isSearchMode: isSearchMode),
         ],
       ),
     );
@@ -65,16 +112,27 @@ class _SearchPageState extends State<SearchPage>
 }
 
 class _MovieSearchTab extends ConsumerWidget {
-  const _MovieSearchTab();
+  const _MovieSearchTab({required this.isSearchMode});
+
+  final bool isSearchMode;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final notifier = ref.read(movieSearchProvider.notifier);
     return Column(
       children: [
-        SearchFilterBar(
-          kind: MediaKind.movie,
-          onChanged: notifier.setFilters,
+        AnimatedSize(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeInOut,
+          child: isSearchMode
+              ? const SizedBox.shrink()
+              : Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: SearchFilterBar(
+                    kind: MediaKind.movie,
+                    onChanged: notifier.setFilters,
+                  ),
+                ),
         ),
         Expanded(
           child: SearchResultsGrid<Movie>(
@@ -97,16 +155,27 @@ class _MovieSearchTab extends ConsumerWidget {
 }
 
 class _TvSearchTab extends ConsumerWidget {
-  const _TvSearchTab();
+  const _TvSearchTab({required this.isSearchMode});
+
+  final bool isSearchMode;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final notifier = ref.read(tvSearchProvider.notifier);
     return Column(
       children: [
-        SearchFilterBar(
-          kind: MediaKind.tv,
-          onChanged: notifier.setFilters,
+        AnimatedSize(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeInOut,
+          child: isSearchMode
+              ? const SizedBox.shrink()
+              : Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: SearchFilterBar(
+                    kind: MediaKind.tv,
+                    onChanged: notifier.setFilters,
+                  ),
+                ),
         ),
         Expanded(
           child: SearchResultsGrid<TvShow>(
