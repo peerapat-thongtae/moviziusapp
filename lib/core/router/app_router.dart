@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/auth/pages/home_page.dart';
+import '../../features/person/pages/person_page.dart';
 import '../../features/auth/pages/login_page.dart';
 import '../../features/explore/pages/explore_page.dart';
 import '../../features/home/pages/continue_watching_page.dart';
@@ -59,6 +60,14 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           final show = extra is TvShow ? extra : null;
           final title = extra is String ? extra : show?.name;
           return SeriesDetailPage(seriesId: id, title: title, show: show);
+        },
+      ),
+      GoRoute(
+        path: RoutePaths.personDetail,
+        builder: (context, state) {
+          final id = int.parse(state.pathParameters['id']!);
+          final name = state.extra is String ? state.extra as String : null;
+          return PersonPage(personId: id, name: name);
         },
       ),
       GoRoute(

@@ -94,6 +94,7 @@ class _MoviziusAppState extends ConsumerState<MoviziusApp>
     });
 
     if (authState is AuthLoading) {
+      print("wtf");
       return MaterialApp(
         theme: AppTheme.light(),
         themeMode: ThemeMode.dark,

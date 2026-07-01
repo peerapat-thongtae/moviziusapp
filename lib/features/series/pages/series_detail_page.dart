@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/tmdb_image.dart';
+import '../../../core/router/route_paths.dart';
 import '../../../core/widgets/imdb_badge.dart';
 import '../../../core/widgets/media_detail_view.dart';
 import '../../../core/widgets/overlay_icon_button.dart';
@@ -268,6 +269,38 @@ class _SeriesBodyState extends ConsumerState<_SeriesBody> {
                           ? 'No overview available.'
                           : show.overview,
                     ),
+                    if (show.credits?.cast.isNotEmpty == true) ...[
+                      const Divider(height: 32),
+                      Text('Cast', style: textTheme.titleMedium),
+                      const SizedBox(height: 12),
+                      _CastRow(
+                        items: [
+                          for (final c in show.credits!.cast)
+                            _CastItem(
+                              id: c.id,
+                              name: c.name,
+                              character: c.character,
+                              profilePath: c.profilePath,
+                            ),
+                        ],
+                      ),
+                    ],
+                    if (show.createdBy.isNotEmpty) ...[
+                      const Divider(height: 32),
+                      Text('Crew', style: textTheme.titleMedium),
+                      const SizedBox(height: 12),
+                      _CastRow(
+                        items: [
+                          for (final c in show.createdBy)
+                            _CastItem(
+                              id: c.id,
+                              name: c.name,
+                              character: 'Creator',
+                              profilePath: c.profilePath,
+                            ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -342,6 +375,92 @@ class _SeriesBodyState extends ConsumerState<_SeriesBody> {
 /// Horizontal, lazily-built (not `shrinkWrap`) row of season pills built from
 /// the show's already-fetched [Season] metadata — no extra fetch needed just
 /// to populate the selector itself.
+class _CastItem {
+  const _CastItem({
+    required this.id,
+    required this.name,
+    this.character,
+    this.profilePath,
+  });
+  final int id;
+  final String name;
+  final String? character;
+  final String? profilePath;
+}
+
+class _CastRow extends StatelessWidget {
+  const _CastRow({required this.items});
+
+  final List<_CastItem> items;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return SizedBox(
+      height: 110,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: items.length,
+        itemBuilder: (context, index) {
+          final item = items[index];
+          final profilePath = item.profilePath;
+
+          return Padding(
+            padding: EdgeInsets.only(right: index == items.length - 1 ? 0 : 12),
+            child: GestureDetector(
+              onTap: () => context.push(
+                RoutePaths.personDetailPath(item.id),
+                extra: item.name,
+              ),
+              child: SizedBox(
+                width: 72,
+                child: Column(
+                  children: [
+                    CircleAvatar(
+                      radius: 32,
+                      backgroundColor: colorScheme.surfaceContainerHighest,
+                      backgroundImage: profilePath != null && profilePath.isNotEmpty
+                          ? NetworkImage(TmdbImage.profile(profilePath))
+                          : null,
+                      child: profilePath == null || profilePath.isEmpty
+                          ? Icon(
+                              Icons.person,
+                              size: 32,
+                              color: colorScheme.onSurfaceVariant,
+                            )
+                          : null,
+                    ),
+                  const SizedBox(height: 6),
+                  Text(
+                    item.name,
+                    style: textTheme.labelSmall,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                  ),
+                  if (item.character != null && item.character!.isNotEmpty)
+                    Text(
+                      item.character!,
+                      style: textTheme.labelSmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                    ),
+                ],
+              ),
+            ),
+          ),
+          );
+        },
+      ),
+    );
+  }
+}
+
 class _SeasonSelector extends StatelessWidget {
   const _SeasonSelector({
     required this.seasons,

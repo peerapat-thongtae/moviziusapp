@@ -11,6 +11,9 @@ class RoutePaths {
   static const continueWatching = '/continue-watching';
   static const calendar = '/calendar';
 
+  static const personDetail = '/person/:id';
+
   static String movieDetailPath(int id) => '/movie/$id';
   static String seriesDetailPath(int id) => '/series/$id';
+  static String personDetailPath(int id) => '/person/$id';
 }
