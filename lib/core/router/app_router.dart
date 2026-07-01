@@ -8,7 +8,9 @@ import '../../features/explore/pages/explore_page.dart';
 import '../../features/home/pages/continue_watching_page.dart';
 import '../../features/movies/models/movie_discover_response.dart';
 import '../../features/movies/pages/movie_detail_page.dart';
+import '../../features/profile/pages/movie_library_page.dart';
 import '../../features/profile/pages/profile_page.dart';
+import '../../features/profile/pages/tv_library_page.dart';
 import '../../features/search/pages/calendar_page.dart';
 import '../../features/search/pages/search_page.dart';
 import '../../features/series/models/tv_discover_response.dart';
@@ -77,6 +79,14 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RoutePaths.calendar,
         builder: (context, state) => const CalendarPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.movieLibrary,
+        builder: (context, state) => const MovieLibraryPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.tvLibrary,
+        builder: (context, state) => const TvLibraryPage(),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>

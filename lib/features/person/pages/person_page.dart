@@ -191,6 +191,10 @@ class _PersonBody extends StatelessWidget {
               ),
             ),
           ),
+        // Clear the Android system navigation bar (pushed page, no bottom nav).
+        SliverToBoxAdapter(
+          child: SizedBox(height: MediaQuery.paddingOf(context).bottom),
+        ),
       ],
     );
   }

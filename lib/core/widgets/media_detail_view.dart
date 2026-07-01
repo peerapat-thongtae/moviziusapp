@@ -89,6 +89,14 @@ class MediaDetailView extends StatelessWidget {
                       ),
                     ),
                     ...tab.slivers,
+                    // Clear the Android system navigation bar: the detail pages
+                    // are pushed outside the shell, so there's no bottom nav bar
+                    // consuming this inset.
+                    SliverToBoxAdapter(
+                      child: SizedBox(
+                        height: MediaQuery.paddingOf(context).bottom,
+                      ),
+                    ),
                   ],
                 ),
               ),

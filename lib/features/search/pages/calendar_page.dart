@@ -105,10 +105,16 @@ class _MoviesList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(releasingTodayProvider(date));
+    final listPadding = EdgeInsets.fromLTRB(
+      12,
+      12,
+      12,
+      12 + MediaQuery.paddingOf(context).bottom,
+    );
 
     return async.when(
       loading: () => ListView.separated(
-        padding: const EdgeInsets.all(12),
+        padding: listPadding,
         itemCount: 6,
         separatorBuilder: (_, _) => const SizedBox(height: 8),
         itemBuilder: (_, _) => const MediaRowCardSkeleton(),
@@ -138,7 +144,7 @@ class _MoviesList extends ConsumerWidget {
         return RefreshIndicator(
           onRefresh: () async => ref.invalidate(releasingTodayProvider(date)),
           child: ListView.separated(
-            padding: const EdgeInsets.all(12),
+            padding: listPadding,
             itemCount: movies.length,
             separatorBuilder: (_, _) => const SizedBox(height: 8),
             itemBuilder: (context, i) => _MovieCard(movie: movies[i]),
@@ -330,10 +336,16 @@ class _SeriesList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(airingTodayProvider(date));
+    final listPadding = EdgeInsets.fromLTRB(
+      12,
+      12,
+      12,
+      12 + MediaQuery.paddingOf(context).bottom,
+    );
 
     return async.when(
       loading: () => ListView.separated(
-        padding: const EdgeInsets.all(12),
+        padding: listPadding,
         itemCount: 6,
         separatorBuilder: (_, _) => const SizedBox(height: 8),
         itemBuilder: (_, _) => const MediaRowCardSkeleton(),
@@ -363,7 +375,7 @@ class _SeriesList extends ConsumerWidget {
         return RefreshIndicator(
           onRefresh: () async => ref.invalidate(airingTodayProvider(date)),
           child: ListView.separated(
-            padding: const EdgeInsets.all(12),
+            padding: listPadding,
             itemCount: shows.length,
             separatorBuilder: (_, _) => const SizedBox(height: 8),
             itemBuilder: (context, i) => _ShowCard(show: shows[i]),

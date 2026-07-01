@@ -63,6 +63,7 @@ class _ContinueWatchingPageState extends ConsumerState<ContinueWatchingPage> {
               text: 'Nothing in progress yet.',
             );
           }
+          final bottomInset = MediaQuery.paddingOf(context).bottom;
           return Stack(
             children: [
               GridView.builder(
@@ -71,7 +72,7 @@ class _ContinueWatchingPageState extends ConsumerState<ContinueWatchingPage> {
                   16,
                   16,
                   16,
-                  list.isLoadingMore ? 24 + 56 : 24,
+                  (list.isLoadingMore ? 24 + 56 : 24) + bottomInset,
                 ),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,

@@ -10,7 +10,14 @@ const _gridDelegate = SliverGridDelegateWithFixedCrossAxisCount(
   crossAxisSpacing: 12,
   mainAxisSpacing: 16,
 );
-const _gridPadding = EdgeInsets.fromLTRB(16, 16, 16, 24);
+
+/// Base grid padding. The bottom value is combined at build time with the
+/// safe-area bottom inset ([_gridPaddingOf]) so content clears the Android
+/// system navigation bar on pushed pages that have no bottom nav bar. Inside
+/// the shell the Scaffold's bottomNavigationBar already consumes that inset,
+/// so it reads 0 there and nothing is double-padded.
+EdgeInsets _gridPaddingOf(BuildContext context) =>
+    EdgeInsets.fromLTRB(16, 16, 16, 24 + MediaQuery.paddingOf(context).bottom);
 
 /// Extra bottom padding reserved while loading more so the trailing spinner
 /// sits in a gap below the last row instead of overlapping the last cards.
@@ -76,6 +83,7 @@ class _SearchResultsGridState<T> extends State<SearchResultsGrid<T>> {
             text: 'No results. Try different filters.',
           );
         }
+        final gridPadding = _gridPaddingOf(context);
         return RefreshIndicator(
           onRefresh: widget.onRefresh,
           child: Stack(
@@ -83,10 +91,10 @@ class _SearchResultsGridState<T> extends State<SearchResultsGrid<T>> {
               GridView.builder(
                 controller: _scrollController,
                 padding: state.isLoadingMore
-                    ? _gridPadding.add(
+                    ? gridPadding.add(
                         const EdgeInsets.only(bottom: _loadMoreExtent),
                       ) as EdgeInsets
-                    : _gridPadding,
+                    : gridPadding,
                 gridDelegate: _gridDelegate,
                 itemCount: state.items.length,
                 itemBuilder: (context, index) =>
@@ -114,7 +122,7 @@ class _SkeletonGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GridView.builder(
-      padding: _gridPadding,
+      padding: _gridPaddingOf(context),
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: _gridDelegate,
       itemCount: 6,

@@ -10,6 +10,8 @@ class RoutePaths {
   static const seriesDetail = '/series/:id';
   static const continueWatching = '/continue-watching';
   static const calendar = '/calendar';
+  static const movieLibrary = '/profile/movies';
+  static const tvLibrary = '/profile/tv';
 
   static const personDetail = '/person/:id';
 

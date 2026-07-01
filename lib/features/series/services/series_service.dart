@@ -12,6 +12,18 @@ class SeriesService {
   final Dio _dio;
   final Dio _tmdbDio;
 
+  Future<TvDiscoverResponse> random({int page = 1}) async {
+    final response = await _dio.get(
+      '/tv/random',
+      queryParameters: {
+        'page': page,
+        'without_status': 'watchlist,watched',
+        'total': 15,
+      },
+    );
+    return TvDiscoverResponse.fromJson(response.data as Map<String, dynamic>);
+  }
+
   Future<TvDiscoverResponse> search(String q, {int page = 1}) async {
     final response = await _dio.get(
       '/tv/search',
