@@ -1,0 +1,60 @@
+name: Firebase App Distribution
+
+# Builds a signed release APK and uploads it to Firebase App Distribution.
+# Runs only when the triggering commit message contains "build-ci", so normal
+# pushes don't consume CI minutes.
+on:
+  push:
+    branches:
+      - "**"
+
+jobs:
+  distribute:
+    if: contains(github.event.head_commit.message, 'build-ci')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Recreate .env (bundled Flutter asset)
+        run: printf '%s' "${{ secrets.ENV_FILE }}" > .env
+
+      - name: Decode release keystore
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/upload-keystore.jks
+
+      - name: Write key.properties
+        run: |
+          cat > android/key.properties <<EOF
+          storeFile=upload-keystore.jks
+          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          EOF
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Upload to Firebase App Distribution
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ secrets.FIREBASE_APP_ID }}
+          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          groups: ${{ secrets.FIREBASE_TESTER_GROUP }}
+          file: build/app/outputs/flutter-apk/app-release.apk
+          releaseNotes: "Automated build from ${{ github.sha }}"
