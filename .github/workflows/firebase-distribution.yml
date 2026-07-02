@@ -50,11 +50,27 @@ jobs:
       - name: Build release APK
         run: flutter build apk --release
 
+      - name: Decode & validate Firebase service account
+        env:
+          SA_B64: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$SA_B64" ]; then
+            echo "::error::FIREBASE_SERVICE_ACCOUNT secret is empty or not set."
+            exit 1
+          fi
+          # Secret is stored base64-encoded; decode to a real JSON key file.
+          echo "$SA_B64" | base64 -d > "$RUNNER_TEMP/firebase-sa.json" 2>/dev/null || {
+            echo "::error::FIREBASE_SERVICE_ACCOUNT is not valid base64. Re-encode the JSON key with: base64 -i service-account.json"
+            exit 1
+          }
+          # Verify it's a service-account key (does not print secret contents).
+          python3 -c 'import json,os; d=json.load(open(os.environ["RUNNER_TEMP"]+"/firebase-sa.json")); assert d.get("type")=="service_account", "decoded content is not a service_account key"; print("Service account:", d["client_email"])'
+
       - name: Upload to Firebase App Distribution
         uses: wzieba/Firebase-Distribution-Github-Action@v1
         with:
           appId: ${{ secrets.FIREBASE_APP_ID }}
-          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          serviceCredentialsFile: ${{ runner.temp }}/firebase-sa.json
           groups: ${{ secrets.FIREBASE_TESTER_GROUP }}
           file: build/app/outputs/flutter-apk/app-release.apk
           releaseNotes: "Automated build from ${{ github.sha }}"
