@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/tmdb_image.dart';
 import '../../../core/router/route_paths.dart';
 import '../../../core/widgets/imdb_badge.dart';
+import '../../../core/widgets/media_detail_skeleton.dart';
 import '../../../core/widgets/media_detail_view.dart';
 import '../../../core/widgets/overlay_icon_button.dart';
 import '../../../core/widgets/tag.dart';
@@ -12,6 +13,7 @@ import '../../watchlist/providers/tv_watchlist_provider.dart';
 import '../../watchlist/widgets/watchlist_icon_button.dart';
 import '../models/tv_discover_response.dart';
 import '../providers/season_episodes_provider.dart';
+import '../providers/series_detail_provider.dart';
 import '../providers/continue_watching_provider.dart';
 
 /// Picks the best YouTube trailer key out of [show]'s videos: an official
@@ -62,7 +64,7 @@ class SeriesDetailPage extends ConsumerWidget {
             builder: (context, opacity, child) =>
                 Opacity(opacity: opacity, child: child),
             child: show == null
-                ? _FallbackBody(seriesId: seriesId, title: title)
+                ? _SeriesLoader(seriesId: seriesId)
                 : _SeriesBody(show: show, seriesId: seriesId),
           ),
           SafeArea(
@@ -80,44 +82,44 @@ class SeriesDetailPage extends ConsumerWidget {
   }
 }
 
-class _FallbackBody extends StatelessWidget {
-  const _FallbackBody({required this.seriesId, this.title});
+/// Fetches the full [TvShow] from `GET /tv/:id` for entry points that only
+/// pass an id (deep links, search, library, etc.), showing skeleton loading
+/// while it resolves and an error state with retry on failure.
+class _SeriesLoader extends ConsumerWidget {
+  const _SeriesLoader({required this.seriesId});
 
   final int seriesId;
-  final String? title;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final showAsync = ref.watch(seriesDetailProvider(seriesId));
+
+    return showAsync.when(
+      loading: () => const MediaDetailSkeleton(),
+      error: (error, stackTrace) => _DetailError(
+        onRetry: () => ref.invalidate(seriesDetailProvider(seriesId)),
+      ),
+      data: (show) => _SeriesBody(show: show, seriesId: seriesId),
+    );
+  }
+}
+
+/// Shared error state for the detail page when the detail fetch fails.
+class _DetailError extends StatelessWidget {
+  const _DetailError({required this.onRetry});
+
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 56, 16, 16),
+      child: Center(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Text(
-                    title ?? 'Untitled',
-                    style: textTheme.headlineSmall,
-                  ),
-                ),
-                WatchlistIconButton(id: seriesId, mediaType: 'tv'),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text('Series ID: $seriesId', style: textTheme.bodySmall),
-            const SizedBox(height: 16),
-            Text('Overview', style: textTheme.titleMedium),
-            const SizedBox(height: 8),
-            const Text(
-              'This is placeholder overview text. Real series details '
-              '(synopsis, seasons, cast, networks) will be wired up once '
-              'the series detail API is integrated.',
-            ),
+            const Text('Failed to load details.'),
+            const SizedBox(height: 12),
+            FilledButton.tonal(onPressed: onRetry, child: const Text('Retry')),
           ],
         ),
       ),

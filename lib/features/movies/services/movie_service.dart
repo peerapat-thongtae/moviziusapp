@@ -23,6 +23,14 @@ class MovieService {
     );
   }
 
+  /// Full movie detail from `GET /movie/:id`. The proxy returns the same
+  /// [Movie] shape as the discover feed (genres, casts, videos, etc.), so it
+  /// parses through the same [Movie.fromJson].
+  Future<Movie> detail(int id) async {
+    final response = await _dio.get('/movie/$id');
+    return Movie.fromJson(response.data as Map<String, dynamic>);
+  }
+
   Future<MovieDiscoverResponse> search(String q, {int page = 1}) async {
     final response = await _dio.get(
       '/movie/search',

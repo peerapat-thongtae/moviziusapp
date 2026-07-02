@@ -24,6 +24,14 @@ class SeriesService {
     return TvDiscoverResponse.fromJson(response.data as Map<String, dynamic>);
   }
 
+  /// Full TV detail from `GET /tv/:id`. The proxy returns the same [TvShow]
+  /// shape as the discover feed (genres, seasons, credits, videos, etc.), so it
+  /// parses through the same [TvShow.fromJson].
+  Future<TvShow> detail(int id) async {
+    final response = await _dio.get('/tv/$id');
+    return TvShow.fromJson(response.data as Map<String, dynamic>);
+  }
+
   Future<TvDiscoverResponse> search(String q, {int page = 1}) async {
     final response = await _dio.get(
       '/tv/search',

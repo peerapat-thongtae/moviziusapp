@@ -6,12 +6,14 @@ import '../../../core/router/route_paths.dart';
 
 import '../../../core/constants/tmdb_image.dart';
 import '../../../core/widgets/imdb_badge.dart';
+import '../../../core/widgets/media_detail_skeleton.dart';
 import '../../../core/widgets/media_detail_view.dart';
 import '../../../core/widgets/overlay_icon_button.dart';
 import '../../../core/widgets/tag.dart';
 import '../../watchlist/providers/watchlist_provider.dart';
 import '../../watchlist/widgets/watchlist_icon_button.dart';
 import '../models/movie_discover_response.dart';
+import '../providers/movie_detail_provider.dart';
 
 /// Picks the best YouTube trailer key out of [movie]'s videos: an official
 /// trailer if there is one, else any YouTube video, else none.
@@ -62,7 +64,7 @@ class MovieDetailPage extends ConsumerWidget {
             builder: (context, opacity, child) =>
                 Opacity(opacity: opacity, child: child),
             child: movie == null
-                ? _FallbackBody(movieId: movieId, title: title)
+                ? _MovieLoader(movieId: movieId)
                 : _MovieBody(
                     movie: movie,
                     movieId: movieId,
@@ -87,44 +89,53 @@ class MovieDetailPage extends ConsumerWidget {
   }
 }
 
-class _FallbackBody extends StatelessWidget {
-  const _FallbackBody({required this.movieId, this.title});
+/// Fetches the full [Movie] from `GET /movie/:id` for entry points that only
+/// pass an id (deep links, the Explore reel title, etc.), showing skeleton
+/// loading while it resolves and an error state with retry on failure.
+class _MovieLoader extends ConsumerWidget {
+  const _MovieLoader({required this.movieId});
 
   final int movieId;
-  final String? title;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final movieAsync = ref.watch(movieDetailProvider(movieId));
+
+    return movieAsync.when(
+      loading: () => const MediaDetailSkeleton(),
+      error: (error, stackTrace) => _DetailError(
+        onRetry: () => ref.invalidate(movieDetailProvider(movieId)),
+      ),
+      data: (movie) => _MovieBody(
+        movie: movie,
+        movieId: movieId,
+        onRefresh: () async {
+          ref.invalidate(movieDetailProvider(movieId));
+          ref.invalidate(watchlistNotifierProvider);
+          await ref.read(watchlistNotifierProvider.future);
+          await ref.read(movieDetailProvider(movieId).future);
+        },
+      ),
+    );
+  }
+}
+
+/// Shared error state for the detail pages when the detail fetch fails.
+class _DetailError extends StatelessWidget {
+  const _DetailError({required this.onRetry});
+
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 56, 16, 16),
+      child: Center(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Text(
-                    title ?? 'Untitled',
-                    style: textTheme.headlineSmall,
-                  ),
-                ),
-                WatchlistIconButton(id: movieId),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text('Movie ID: $movieId', style: textTheme.bodySmall),
-            const SizedBox(height: 16),
-            Text('Overview', style: textTheme.titleMedium),
-            const SizedBox(height: 8),
-            const Text(
-              'This is placeholder overview text. Real movie details '
-              '(synopsis, cast, runtime, trailer) will be wired up once '
-              'the movie detail API is integrated.',
-            ),
+            const Text('Failed to load details.'),
+            const SizedBox(height: 12),
+            FilledButton.tonal(onPressed: onRetry, child: const Text('Retry')),
           ],
         ),
       ),
