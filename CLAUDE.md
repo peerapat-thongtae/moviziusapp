@@ -242,6 +242,8 @@ Avoid:
 
 Favor composition over inheritance.
 
+All date time format should format to YYYY-MM-DD HH:mm Asia/Bangkok zone
+
 ---
 
 ## Dependencies Policy

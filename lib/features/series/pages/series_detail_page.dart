@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/constants/app_timezone.dart';
 import '../../../core/constants/tmdb_image.dart';
 import '../../../core/router/route_paths.dart';
 import '../../../core/widgets/imdb_badge.dart';
@@ -9,9 +10,11 @@ import '../../../core/widgets/media_detail_skeleton.dart';
 import '../../../core/widgets/media_detail_view.dart';
 import '../../../core/widgets/overlay_icon_button.dart';
 import '../../../core/widgets/tag.dart';
+import '../../watchlist/models/tv_watchlist_item.dart';
 import '../../watchlist/providers/tv_watchlist_provider.dart';
 import '../../watchlist/widgets/watchlist_icon_button.dart';
 import '../models/tv_discover_response.dart';
+import '../tv_watch_progress.dart';
 import '../providers/season_episodes_provider.dart';
 import '../providers/series_detail_provider.dart';
 import '../providers/continue_watching_provider.dart';
@@ -146,9 +149,7 @@ class _SeriesBodyState extends ConsumerState<_SeriesBody> {
   void initState() {
     super.initState();
     _seasons =
-        widget.show.seasons
-            .where((season) => season.seasonNumber != 0)
-            .toList()
+        widget.show.seasons.where((season) => season.seasonNumber != 0).toList()
           ..sort((a, b) => a.seasonNumber.compareTo(b.seasonNumber));
     if (_seasons.isNotEmpty) {
       final defaultSeason = _seasons.firstWhere(
@@ -168,13 +169,9 @@ class _SeriesBodyState extends ConsumerState<_SeriesBody> {
         : 'Unknown';
     final selectedSeasonNumber = _selectedSeasonNumber;
 
+    final item = ref.watch(tvWatchlistNotifierProvider).value?[widget.seriesId];
     final watchedEpisodeIdsBySeason = <int, Set<int>>{};
-    for (final e
-        in ref
-                .watch(tvWatchlistNotifierProvider)
-                .value?[widget.seriesId]
-                ?.episodeWatched ??
-            const []) {
+    for (final e in item?.episodeWatched ?? const []) {
       (watchedEpisodeIdsBySeason[e.seasonNumber] ??= {}).add(e.episodeId);
     }
     final visibleSeasons = _showUnwatchedOnly
@@ -202,9 +199,7 @@ class _SeriesBodyState extends ConsumerState<_SeriesBody> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Text(show.name, style: textTheme.headlineSmall),
-              ),
+              Expanded(child: Text(show.name, style: textTheme.headlineSmall)),
               WatchlistIconButton(id: widget.seriesId, mediaType: 'tv'),
             ],
           ),
@@ -230,6 +225,8 @@ class _SeriesBodyState extends ConsumerState<_SeriesBody> {
           ),
           const SizedBox(height: 4),
           Text('Creator: $creator'),
+          const SizedBox(height: 12),
+          _WatchSummaryCard(item: item, show: show),
           if (show.genres.isNotEmpty) ...[
             const SizedBox(height: 12),
             Wrap(
@@ -374,6 +371,213 @@ class _SeriesBodyState extends ConsumerState<_SeriesBody> {
   }
 }
 
+/// Compact watch-progress summary in the series header, driven by the show's
+/// watchlist [item] status: where the user is (last watched season/episode),
+/// how much is left, or — once caught up — when the next episode airs.
+class _WatchSummaryCard extends StatelessWidget {
+  const _WatchSummaryCard({required this.item, required this.show});
+
+  final TvWatchlistItem? item;
+  final TvShow show;
+
+  /// Formats [dt] as `YYYY-MM-DD HH:mm` in Asia/Bangkok (UTC+7, no DST).
+  String _formatAirDateTime(DateTime dt) {
+    final local = dt.toUtc().add(kAppTimezoneOffset);
+    return '${local.year.toString().padLeft(4, '0')}-'
+        '${local.month.toString().padLeft(2, '0')}-'
+        '${local.day.toString().padLeft(2, '0')} '
+        '${local.hour.toString().padLeft(2, '0')}:'
+        '${local.minute.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = tvWatchProgress(item, show);
+    final status = item?.accountStatus ?? '';
+    final remaining = (progress.total - progress.watched).clamp(
+      0,
+      progress.total,
+    );
+
+    // Highest watched position, ignoring season 0 specials.
+    EpisodeWatched? lastWatched;
+    for (final e in item?.episodeWatched ?? const <EpisodeWatched>[]) {
+      if (e.seasonNumber == 0) continue;
+      if (lastWatched == null ||
+          e.seasonNumber > lastWatched.seasonNumber ||
+          (e.seasonNumber == lastWatched.seasonNumber &&
+              e.episodeNumber > lastWatched.episodeNumber)) {
+        lastWatched = e;
+      }
+    }
+
+    // Next episode to air: prefer the detail's Episode (richer — has a name),
+    // falling back to the watchlist item's TvAiredEpisode.
+    final nextEp = show.nextEpisodeToAir;
+    final nextEpItem = item?.nextEpisodeToAir;
+    final hasNext = nextEp != null || nextEpItem != null;
+
+    final notStarted =
+        progress.watched == 0 &&
+        status != 'watched' &&
+        status != 'waiting_next_ep';
+    if (notStarted) {
+      return _SummaryContainer(
+        icon: Icons.play_circle_outline,
+        title: 'Not started',
+        subtitle: progress.total > 0 ? '${progress.total} episodes' : null,
+      );
+    }
+
+    final waitingNext =
+        status == 'waiting_next_ep' ||
+        (progress.watched > 0 && remaining <= 0 && hasNext);
+    if (waitingNext && hasNext) {
+      final season = nextEp?.seasonNumber ?? nextEpItem!.seasonNumber;
+      final number = nextEp?.episodeNumber ?? nextEpItem!.episodeNumber;
+      final name = nextEp?.name ?? '';
+      final nextAirDate = (nextEp != null && nextEp.airDate.isNotEmpty)
+          ? DateTime.tryParse(nextEp.airDate)
+          : nextEpItem?.airDate;
+      final airDate = nextAirDate != null
+          ? _formatAirDateTime(nextAirDate)
+          : '';
+      final label = [
+        'S${season}E$number',
+        if (name.isNotEmpty) name,
+      ].join(' · ');
+      return _SummaryContainer(
+        icon: Icons.schedule,
+        title: 'Next episode',
+        highlight: label,
+        subtitle: airDate.isNotEmpty ? 'Airs $airDate' : null,
+      );
+    }
+
+    // Fully caught up on an ended show, nothing upcoming.
+    if (remaining <= 0 && progress.watched > 0) {
+      return _SummaryContainer(
+        icon: Icons.check_circle_outline,
+        title: 'All caught up',
+        subtitle: progress.total > 0
+            ? 'Watched ${progress.total} episodes'
+            : null,
+      );
+    }
+
+    // Watching: partway through.
+    return _SummaryContainer(
+      icon: Icons.play_arrow_rounded,
+      title: 'Watching',
+      highlight: lastWatched != null
+          ? 'Season ${lastWatched.seasonNumber} • Episode ${lastWatched.episodeNumber}'
+          : null,
+      subtitle:
+          '$remaining ${remaining == 1 ? 'episode' : 'episodes'} remaining',
+      progress: progress.fraction,
+    );
+  }
+}
+
+/// Presentational shell for [_WatchSummaryCard]'s four states: an icon + title,
+/// an optional emphasised [highlight] line and [subtitle], and — for the
+/// watching state — an animated progress bar.
+class _SummaryContainer extends StatelessWidget {
+  const _SummaryContainer({
+    required this.icon,
+    required this.title,
+    this.highlight,
+    this.subtitle,
+    this.progress,
+  });
+
+  final IconData icon;
+  final String title;
+  final String? highlight;
+  final String? subtitle;
+  final double? progress;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final highlight = this.highlight;
+    final subtitle = this.subtitle;
+    final progress = this.progress;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colorScheme.secondaryContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 20, color: colorScheme.onSecondaryContainer),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: textTheme.labelMedium?.copyWith(
+                        color: colorScheme.onSecondaryContainer,
+                      ),
+                    ),
+                    if (highlight != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        highlight,
+                        style: textTheme.titleSmall?.copyWith(
+                          color: colorScheme.onSecondaryContainer,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSecondaryContainer.withValues(
+                            alpha: 0.8,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (progress != null) ...[
+            const SizedBox(height: 12),
+            TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: progress),
+              duration: const Duration(milliseconds: 600),
+              curve: Curves.easeOut,
+              builder: (context, value, _) => ClipRRect(
+                borderRadius: BorderRadius.circular(999),
+                child: LinearProgressIndicator(
+                  value: value,
+                  minHeight: 6,
+                  backgroundColor: colorScheme.surfaceContainerHighest,
+                  color: colorScheme.primary,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 /// Horizontal, lazily-built (not `shrinkWrap`) row of season pills built from
 /// the show's already-fetched [Season] metadata — no extra fetch needed just
 /// to populate the selector itself.
@@ -423,7 +627,8 @@ class _CastRow extends StatelessWidget {
                     CircleAvatar(
                       radius: 32,
                       backgroundColor: colorScheme.surfaceContainerHighest,
-                      backgroundImage: profilePath != null && profilePath.isNotEmpty
+                      backgroundImage:
+                          profilePath != null && profilePath.isNotEmpty
                           ? NetworkImage(TmdbImage.profile(profilePath))
                           : null,
                       child: profilePath == null || profilePath.isEmpty
@@ -434,28 +639,28 @@ class _CastRow extends StatelessWidget {
                             )
                           : null,
                     ),
-                  const SizedBox(height: 6),
-                  Text(
-                    item.name,
-                    style: textTheme.labelSmall,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                  ),
-                  if (item.character != null && item.character!.isNotEmpty)
+                    const SizedBox(height: 6),
                     Text(
-                      item.character!,
-                      style: textTheme.labelSmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
+                      item.name,
+                      style: textTheme.labelSmall,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.center,
                     ),
-                ],
+                    if (item.character != null && item.character!.isNotEmpty)
+                      Text(
+                        item.character!,
+                        style: textTheme.labelSmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                      ),
+                  ],
+                ),
               ),
             ),
-          ),
           );
         },
       ),
@@ -547,11 +752,12 @@ class _EpisodeSliver extends ConsumerWidget {
       seasonEpisodesProvider((seriesId: seriesId, seasonNumber: seasonNumber)),
     );
     final watchedIds = {
-      for (final e in ref
-              .watch(tvWatchlistNotifierProvider)
-              .value?[seriesId]
-              ?.episodeWatched ??
-          const [])
+      for (final e
+          in ref
+                  .watch(tvWatchlistNotifierProvider)
+                  .value?[seriesId]
+                  ?.episodeWatched ??
+              const [])
         e.episodeId,
     };
 
@@ -645,17 +851,17 @@ class _EpisodeRow extends ConsumerWidget {
                 height: 68,
                 child: stillPath == null || stillPath.isEmpty
                     ? ColoredBox(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerHighest,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerHighest,
                       )
                     : Image.network(
                         TmdbImage.still(stillPath),
                         fit: BoxFit.cover,
                         loadingBuilder: (context, child, progress) =>
                             progress == null
-                                ? child
-                                : const ColoredBox(color: Colors.black26),
+                            ? child
+                            : const ColoredBox(color: Colors.black26),
                         errorBuilder: (context, error, stackTrace) =>
                             const ColoredBox(color: Colors.black26),
                       ),

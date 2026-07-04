@@ -20,6 +20,5 @@ import 'models/tv_discover_response.dart';
       ? show.numberOfEpisodes
       : (item?.numberOfEpisodes ?? 0);
   final fraction = total == 0 ? 0.0 : (watched / total).clamp(0.0, 1.0);
-  print(item);
   return (watched: watched, total: total, fraction: fraction);
 }

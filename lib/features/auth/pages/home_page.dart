@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/widgets/app_refresh_indicator.dart';
 import '../../home/providers/hero_provider.dart';
 import '../../home/widgets/continue_watching_section.dart';
 import '../../home/widgets/hero_slider.dart';
@@ -13,7 +14,7 @@ class HomePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      body: RefreshIndicator(
+      body: AppRefreshIndicator(
         onRefresh: () async {
           ref.invalidate(heroSliderProvider);
           ref.invalidate(continueWatchingProvider);

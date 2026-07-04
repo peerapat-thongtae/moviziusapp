@@ -99,15 +99,31 @@ abstract class _LibraryNotifier<T> extends AsyncNotifier<LibraryState<T>> {
   }
 }
 
+const _movieSort = <String, String>{
+  'watchlist': 'watchlisted_at.desc',
+  'watched': 'watched_at.desc',
+};
+
+const _tvSort = <String, String>{
+  'watchlist': 'watchlisted_at.desc',
+  'watched': 'watched_at.desc',
+  'watching': 'max_watched_ep.desc',
+  'waiting_next_ep': 'max_watched_ep.desc',
+};
+
 class MovieLibraryNotifier extends _LibraryNotifier<Movie> {
   @override
   Future<({List<Movie> items, int totalPages})> fetchByStatus(
     String status,
     int page,
   ) async {
-    final res = await ref
-        .read(movieServiceProvider)
-        .discoverCatalog(page: page, params: {'with_account_status': status});
+    final res = await ref.read(movieServiceProvider).discoverCatalog(
+      page: page,
+      params: {
+        'with_account_status': status,
+        if (_movieSort[status] != null) 'sort_by': _movieSort[status]!,
+      },
+    );
     return (
       items: res.results.where((m) => m.posterPath.isNotEmpty).toList(),
       totalPages: res.totalPages,
@@ -121,9 +137,13 @@ class TvLibraryNotifier extends _LibraryNotifier<TvShow> {
     String status,
     int page,
   ) async {
-    final res = await ref
-        .read(seriesServiceProvider)
-        .discover(page: page, params: {'with_account_status': status});
+    final res = await ref.read(seriesServiceProvider).discover(
+      page: page,
+      params: {
+        'with_account_status': status,
+        if (_tvSort[status] != null) 'sort_by': _tvSort[status]!,
+      },
+    );
     return (
       items: res.results.where((s) => s.posterPath.isNotEmpty).toList(),
       totalPages: res.totalPages,

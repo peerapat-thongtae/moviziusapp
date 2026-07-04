@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/auth/auth_notifier.dart';
+import '../../../core/widgets/app_refresh_indicator.dart';
 import '../../../core/auth/auth_state.dart';
 import '../../../core/router/route_paths.dart';
 
@@ -28,7 +29,7 @@ class ProfilePage extends ConsumerWidget {
           ),
         ],
       ),
-      body: RefreshIndicator(
+      body: AppRefreshIndicator(
         onRefresh: () async => ref.invalidate(authNotifierProvider),
         child: ListView(
           padding: const EdgeInsets.all(16),

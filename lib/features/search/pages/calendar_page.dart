@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_timezone.dart';
 import '../../../core/router/route_paths.dart';
+import '../../../core/widgets/app_refresh_indicator.dart';
 import '../../../core/widgets/media_row_card.dart';
 import '../../movies/models/movie_discover_response.dart';
 import '../../series/models/tv_discover_response.dart';
@@ -141,7 +142,7 @@ class _MoviesList extends ConsumerWidget {
         if (movies.isEmpty) {
           return const Center(child: Text('No movies releasing on this date'));
         }
-        return RefreshIndicator(
+        return AppRefreshIndicator(
           onRefresh: () async => ref.invalidate(releasingTodayProvider(date)),
           child: ListView.separated(
             padding: listPadding,
@@ -372,7 +373,7 @@ class _SeriesList extends ConsumerWidget {
         if (shows.isEmpty) {
           return const Center(child: Text('No episodes airing on this date'));
         }
-        return RefreshIndicator(
+        return AppRefreshIndicator(
           onRefresh: () async => ref.invalidate(airingTodayProvider(date)),
           child: ListView.separated(
             padding: listPadding,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'app_refresh_indicator.dart';
 import 'overlay_icon_button.dart';
 import 'poster_banner.dart';
 import 'trailer_player_dialog.dart';
@@ -106,7 +107,7 @@ class MediaDetailView extends StatelessWidget {
     );
 
     if (onRefresh != null) {
-      return RefreshIndicator(
+      return AppRefreshIndicator(
         onRefresh: onRefresh,
         notificationPredicate: (n) => n.depth == 0 || n.depth == 2,
         child: content,

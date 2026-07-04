@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/widgets/app_refresh_indicator.dart';
 import '../../../core/widgets/skeleton_loader.dart';
 import '../providers/search_providers.dart';
 
@@ -84,7 +85,7 @@ class _SearchResultsGridState<T> extends State<SearchResultsGrid<T>> {
           );
         }
         final gridPadding = _gridPaddingOf(context);
-        return RefreshIndicator(
+        return AppRefreshIndicator(
           onRefresh: widget.onRefresh,
           child: Stack(
             children: [
