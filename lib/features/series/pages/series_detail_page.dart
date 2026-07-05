@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_timezone.dart';
 import '../../../core/constants/tmdb_image.dart';
 import '../../../core/router/route_paths.dart';
+import '../../../core/utils/episode_type_label.dart';
 import '../../../core/widgets/imdb_badge.dart';
 import '../../../core/widgets/media_detail_skeleton.dart';
 import '../../../core/widgets/media_detail_view.dart';
@@ -487,11 +488,16 @@ class _WatchSummaryCard extends StatelessWidget {
         'S${season}E$number',
         if (name.isNotEmpty) name,
       ].join(' · ');
+      final badgeLabel = episodeTypeLabel(
+        nextEp?.episodeType ?? nextEpItem?.episodeType ?? '',
+        number,
+      );
       return _SummaryContainer(
         icon: Icons.schedule,
         title: 'Next episode',
         highlight: label,
         subtitle: airDate.isNotEmpty ? 'Airs $airDate' : null,
+        badgeLabel: badgeLabel,
       );
     }
 
@@ -530,6 +536,7 @@ class _SummaryContainer extends StatelessWidget {
     this.highlight,
     this.subtitle,
     this.progress,
+    this.badgeLabel,
   });
 
   final IconData icon;
@@ -537,6 +544,7 @@ class _SummaryContainer extends StatelessWidget {
   final String? highlight;
   final String? subtitle;
   final double? progress;
+  final String? badgeLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -572,12 +580,23 @@ class _SummaryContainer extends StatelessWidget {
                     ),
                     if (highlight != null) ...[
                       const SizedBox(height: 2),
-                      Text(
-                        highlight,
-                        style: textTheme.titleSmall?.copyWith(
-                          color: colorScheme.onSecondaryContainer,
-                          fontWeight: FontWeight.w700,
-                        ),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              highlight,
+                              style: textTheme.titleSmall?.copyWith(
+                                color: colorScheme.onSecondaryContainer,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          if (badgeLabel != null) ...[
+                            const SizedBox(width: 6),
+                            Tag(label: badgeLabel!),
+                          ],
+                        ],
                       ),
                     ],
                     if (subtitle != null) ...[
@@ -920,12 +939,19 @@ class _EpisodeRow extends ConsumerWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    [
-                      if (episode.airDate.isNotEmpty) episode.airDate,
-                      if (episode.runtime != null) '${episode.runtime}m',
-                    ].join(' • '),
-                    style: textTheme.bodySmall,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          [
+                            if (episode.airDate.isNotEmpty) episode.airDate,
+                            if (episode.runtime != null) '${episode.runtime}m',
+                          ].join(' • '),
+                          style: textTheme.bodySmall,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 4),
                   Text(

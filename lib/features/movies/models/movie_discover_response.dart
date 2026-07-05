@@ -196,6 +196,12 @@ class Movie {
     }
     return null;
   }
+
+  /// TH-region release date if TMDB provided one, else the global
+  /// [releaseDate].
+  DateTime? get effectiveReleaseDate =>
+      (releaseDateTh.isNotEmpty ? releaseDateTh.first.releaseDate : null) ??
+      releaseDate;
 }
 
 class BelongsToCollection {

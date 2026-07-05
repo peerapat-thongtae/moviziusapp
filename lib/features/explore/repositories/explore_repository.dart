@@ -95,7 +95,9 @@ class ExploreRepository {
       voteCount: movie.voteCount,
       status: movie.status,
       genres: movie.genres.map((g) => g.name).toList(),
-      releaseDate: movie.releaseDate?.toIso8601String().split('T').first ?? '',
+      releaseDate:
+          movie.effectiveReleaseDate?.toIso8601String().split('T').first ??
+          '',
       director: movie.director ?? 'Unknown',
     );
   }

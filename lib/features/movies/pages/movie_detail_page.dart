@@ -266,7 +266,8 @@ class _MovieBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final releaseDate =
-        movie.releaseDate?.toIso8601String().split('T').first ?? 'Unknown';
+        movie.effectiveReleaseDate?.toIso8601String().split('T').first ??
+        'Unknown';
     final watchProviderLogos = _watchProviderLogos(movie);
 
     final header = Padding(

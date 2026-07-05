@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../constants/tmdb_image.dart';
 import 'skeleton_loader.dart';
+import 'tag.dart';
 
 /// Generic horizontal media card — poster on the left, detail column on the
 /// right. Mirrors [MediaPosterCard] (vertical) but laid out as a Row.
@@ -14,6 +15,7 @@ class MediaRowCard extends StatelessWidget {
     required this.voteAverage,
     this.subtitleLine1,
     this.subtitleLine2,
+    this.badgeLabel,
     this.trailing,
     this.onTap,
   });
@@ -27,6 +29,9 @@ class MediaRowCard extends StatelessWidget {
 
   /// Second subtitle line, e.g. episode name.
   final String? subtitleLine2;
+
+  /// Optional small pill shown under the title, e.g. "Season Finale".
+  final String? badgeLabel;
 
   /// Optional widget aligned to the bottom-right of the detail column,
   /// e.g. a WatchlistIconButton.
@@ -91,13 +96,24 @@ class MediaRowCard extends StatelessWidget {
                           ),
                           if (subtitleLine1 != null) ...[
                             const SizedBox(height: 4),
-                            Text(
-                              subtitleLine1!,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    subtitleLine1!,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                if (badgeLabel != null) ...[
+                                  const SizedBox(width: 6),
+                                  Tag(label: badgeLabel!),
+                                ],
+                              ],
                             ),
                           ],
                           if (subtitleLine2 != null) ...[

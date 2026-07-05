@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_timezone.dart';
 import '../../../core/router/route_paths.dart';
+import '../../../core/utils/episode_type_label.dart';
 import '../../../core/widgets/app_refresh_indicator.dart';
 import '../../../core/widgets/media_row_card.dart';
 import '../../movies/models/movie_discover_response.dart';
@@ -175,7 +176,7 @@ class _MovieCard extends StatelessWidget {
       posterPath: movie.posterPath,
       title: movie.title,
       voteAverage: movie.voteAverage,
-      subtitleLine1: _formatDate(movie.releaseDate),
+      subtitleLine1: _formatDate(movie.effectiveReleaseDate),
       subtitleLine2: movie.genres.isNotEmpty ? movie.genres.first.name : null,
       trailing: WatchlistIconButton(id: movie.id, mediaType: 'movie'),
       onTap: () =>
@@ -412,12 +413,17 @@ class _ShowCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final lines = _episodeLines();
+    final nextEp = show.nextEpisodeToAir;
+    final badgeLabel = nextEp != null
+        ? episodeTypeLabel(nextEp.episodeType, nextEp.episodeNumber)
+        : null;
     return MediaRowCard(
       posterPath: show.posterPath,
       title: show.name,
       voteAverage: show.voteAverage,
       subtitleLine1: lines.line1,
       subtitleLine2: lines.line2,
+      badgeLabel: badgeLabel,
       trailing: WatchlistIconButton(id: show.id, mediaType: 'tv'),
       onTap: () =>
           context.push(RoutePaths.seriesDetailPath(show.id), extra: show),
