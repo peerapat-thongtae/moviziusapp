@@ -57,12 +57,17 @@ String? _trailerKey(TvShow show) {
   return null;
 }
 
-/// Reachable from the home hero slider, which already has the full
-/// [TvShow] fetched (passed via the route's `extra`) — that's rendered in
-/// full below. Other entry points fall back to a minimal display. Both
-/// share the same shell as [MovieDetailPage]: no app bar background, just a
-/// back button floating over the content, with the watchlist toggle living
-/// in the detail section next to the title instead.
+/// Reachable from the home hero slider or any show card, which already has a
+/// [TvShow] fetched from a list/discover response (passed via the route's
+/// `extra`) — that's rendered immediately as a placeholder for the first
+/// paint. That list-shaped data is missing detail-only fields like
+/// `created_by`, so this always also fetches the true `GET /tv/:id` via
+/// [seriesDetailProvider] and swaps in the resolved show once it lands
+/// (deep links, search, library, etc. have no placeholder and just show the
+/// skeleton until then). Both share the same shell as [MovieDetailPage]: no
+/// app bar background, just a back button floating over the content, with
+/// the watchlist toggle living in the detail section next to the title
+/// instead.
 class SeriesDetailPage extends ConsumerWidget {
   const SeriesDetailPage({
     super.key,
@@ -77,7 +82,16 @@ class SeriesDetailPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final show = this.show;
+    final showAsync = ref.watch(seriesDetailProvider(seriesId));
+    final resolvedShow = showAsync.value ?? show;
+
+    final Widget body = resolvedShow != null
+        ? _SeriesBody(show: resolvedShow, seriesId: seriesId)
+        : showAsync.hasError
+        ? _DetailError(
+            onRetry: () => ref.invalidate(seriesDetailProvider(seriesId)),
+          )
+        : const MediaDetailSkeleton();
 
     return Scaffold(
       body: Stack(
@@ -87,9 +101,7 @@ class SeriesDetailPage extends ConsumerWidget {
             duration: const Duration(milliseconds: 300),
             builder: (context, opacity, child) =>
                 Opacity(opacity: opacity, child: child),
-            child: show == null
-                ? _SeriesLoader(seriesId: seriesId)
-                : _SeriesBody(show: show, seriesId: seriesId),
+            child: body,
           ),
           SafeArea(
             child: Padding(
@@ -102,28 +114,6 @@ class SeriesDetailPage extends ConsumerWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-/// Fetches the full [TvShow] from `GET /tv/:id` for entry points that only
-/// pass an id (deep links, search, library, etc.), showing skeleton loading
-/// while it resolves and an error state with retry on failure.
-class _SeriesLoader extends ConsumerWidget {
-  const _SeriesLoader({required this.seriesId});
-
-  final int seriesId;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final showAsync = ref.watch(seriesDetailProvider(seriesId));
-
-    return showAsync.when(
-      loading: () => const MediaDetailSkeleton(),
-      error: (error, stackTrace) => _DetailError(
-        onRetry: () => ref.invalidate(seriesDetailProvider(seriesId)),
-      ),
-      data: (show) => _SeriesBody(show: show, seriesId: seriesId),
     );
   }
 }
@@ -185,9 +175,20 @@ class _SeriesBodyState extends ConsumerState<_SeriesBody> {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final show = widget.show;
-    final creator = show.createdBy.isNotEmpty
-        ? show.createdBy.first.name
-        : 'Unknown';
+    final creator = show.creator ?? 'Unknown';
+    // Prefer the real `created_by` credits for the Crew section; only fall
+    // back to a crew-derived Executive Producer credit when that's empty
+    // (see [TvShow.creator]).
+    final creatorCrew = show.createdBy.isNotEmpty
+        ? [
+            for (final c in show.createdBy)
+              (id: c.id, name: c.name, profilePath: c.profilePath),
+          ]
+        : [
+            for (final c in show.credits?.crew ?? const [])
+              if (c.job == 'Executive Producer')
+                (id: c.id, name: c.name, profilePath: c.profilePath),
+          ].take(1).toList();
     final selectedSeasonNumber = _selectedSeasonNumber;
     final watchProviderLogos = _watchProviderLogos(show);
 
@@ -324,13 +325,13 @@ class _SeriesBodyState extends ConsumerState<_SeriesBody> {
                         ],
                       ),
                     ],
-                    if (show.createdBy.isNotEmpty) ...[
+                    if (creatorCrew.isNotEmpty) ...[
                       const Divider(height: 32),
                       Text('Crew', style: textTheme.titleMedium),
                       const SizedBox(height: 12),
                       _CastRow(
                         items: [
-                          for (final c in show.createdBy)
+                          for (final c in creatorCrew)
                             _CastItem(
                               id: c.id,
                               name: c.name,

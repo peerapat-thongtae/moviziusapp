@@ -53,7 +53,10 @@ class ExploreRepository {
     // the raw batch, not the post-filter list below, so a batch that happens
     // to have zero usable trailers doesn't permanently stop pagination.
     _moviesHasMore = response.results.isNotEmpty;
-    final videos = response.results.map(_toExploreVideoFromMovie).nonNulls.toList();
+    final videos = response.results
+        .map(_toExploreVideoFromMovie)
+        .nonNulls
+        .toList();
     return ExploreVideosPage(videos: videos, hasMore: _moviesHasMore);
   }
 
@@ -70,7 +73,10 @@ class ExploreRepository {
     final response = await _seriesService.random(page: _seriesPage);
     // Same `/v2/tv/random` "no total pages" caveat as movies above.
     _seriesHasMore = response.results.isNotEmpty;
-    final videos = response.results.map(_toExploreVideoFromSeries).nonNulls.toList();
+    final videos = response.results
+        .map(_toExploreVideoFromSeries)
+        .nonNulls
+        .toList();
     return ExploreVideosPage(videos: videos, hasMore: _seriesHasMore);
   }
 
@@ -109,9 +115,7 @@ class ExploreRepository {
       firstAirDate: series.firstAirDate,
       totalSeasons: series.numberOfSeasons,
       totalEpisodes: series.numberOfEpisodes,
-      creator: series.createdBy.isNotEmpty
-          ? series.createdBy.first.name
-          : 'Unknown',
+      creator: series.creator ?? 'Unknown',
     );
   }
 

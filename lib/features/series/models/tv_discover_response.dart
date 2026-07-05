@@ -209,6 +209,19 @@ class TvShow {
       ),
     );
   }
+
+  /// The show's creator, preferring TMDB's `created_by` (only reliably
+  /// present on the true `/tv/:id` detail response) and falling back to an
+  /// Executive Producer credit from [credits] — mirrors `Movie.director`'s
+  /// crew-based derivation, which is why movies don't hit this "Unknown"
+  /// class of bug the way TV shows can.
+  String? get creator {
+    if (createdBy.isNotEmpty) return createdBy.first.name;
+    for (final c in credits?.crew ?? const []) {
+      if (c.job == 'Executive Producer') return c.name;
+    }
+    return null;
+  }
 }
 
 class CreatedBy {
