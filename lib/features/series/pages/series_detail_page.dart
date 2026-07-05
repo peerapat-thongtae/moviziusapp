@@ -9,7 +9,9 @@ import '../../../core/widgets/imdb_badge.dart';
 import '../../../core/widgets/media_detail_skeleton.dart';
 import '../../../core/widgets/media_detail_view.dart';
 import '../../../core/widgets/overlay_icon_button.dart';
+import '../../../core/widgets/origin_country_row.dart';
 import '../../../core/widgets/tag.dart';
+import '../../../core/widgets/watch_providers_row.dart';
 import '../../watchlist/models/tv_watchlist_item.dart';
 import '../../watchlist/providers/tv_watchlist_provider.dart';
 import '../../watchlist/widgets/watchlist_icon_button.dart';
@@ -23,6 +25,25 @@ import '../providers/continue_watching_provider.dart';
 /// trailer if there is one, else any YouTube video, else none. Unlike
 /// [Movie]'s videos, [TvShow]'s `site`/`type` are plain strings rather than
 /// enums, so these are compared against TMDB's raw values directly.
+/// TH-region streaming availability for [show], preferring subscription
+/// (`flatrate`) providers and falling back to free/ad-supported ones, sorted
+/// by TMDB's `display_priority`.
+List<WatchProviderLogo> _watchProviderLogos(TvShow show) {
+  final country = show.watchProviders;
+  final providers = country?.flatrate;
+  if (providers == null || providers.isEmpty) return const [];
+  final sorted = [...providers]
+    ..sort((a, b) => a.displayPriority.compareTo(b.displayPriority));
+  return [
+    for (final p in sorted)
+      WatchProviderLogo(
+        providerId: p.providerId,
+        providerName: p.providerName,
+        logoPath: p.logoPath,
+      ),
+  ];
+}
+
 String? _trailerKey(TvShow show) {
   final videos = show.videos?.results ?? const [];
   for (final video in videos) {
@@ -168,6 +189,7 @@ class _SeriesBodyState extends ConsumerState<_SeriesBody> {
         ? show.createdBy.first.name
         : 'Unknown';
     final selectedSeasonNumber = _selectedSeasonNumber;
+    final watchProviderLogos = _watchProviderLogos(show);
 
     final item = ref.watch(tvWatchlistNotifierProvider).value?[widget.seriesId];
     final watchedEpisodeIdsBySeason = <int, Set<int>>{};
@@ -203,7 +225,17 @@ class _SeriesBodyState extends ConsumerState<_SeriesBody> {
               WatchlistIconButton(id: widget.seriesId, mediaType: 'tv'),
             ],
           ),
-          const SizedBox(height: 8),
+          if (show.genres.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final genre in show.genres) Tag(label: genre.name),
+              ],
+            ),
+          ],
+          const SizedBox(height: 12),
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -215,8 +247,22 @@ class _SeriesBodyState extends ConsumerState<_SeriesBody> {
               ),
               const SizedBox(width: 4),
               Text('(${show.voteCount})', style: textTheme.bodySmall),
+              if (show.originCountry.isNotEmpty) ...[
+                const SizedBox(width: 10),
+                SizedBox(
+                  height: 14,
+                  child: VerticalDivider(
+                    width: 1,
+                    thickness: 1,
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                OriginCountryRow(countries: show.originCountry),
+              ],
             ],
           ),
+
           const SizedBox(height: 8),
           Text('${show.firstAirDate} • ${show.status}'),
           const SizedBox(height: 4),
@@ -227,15 +273,9 @@ class _SeriesBodyState extends ConsumerState<_SeriesBody> {
           Text('Creator: $creator'),
           const SizedBox(height: 12),
           _WatchSummaryCard(item: item, show: show),
-          if (show.genres.isNotEmpty) ...[
+          if (watchProviderLogos.isNotEmpty) ...[
             const SizedBox(height: 12),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                for (final genre in show.genres) Tag(label: genre.name),
-              ],
-            ),
+            WatchProvidersRow(providers: watchProviderLogos),
           ],
         ],
       ),

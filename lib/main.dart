@@ -10,6 +10,7 @@ import 'core/notifications/providers.dart';
 import 'core/router/app_router.dart';
 import 'core/router/route_paths.dart';
 import 'core/theme/app_theme.dart';
+import 'features/watch_providers/repositories/watch_provider_repository.dart';
 import 'features/watchlist/providers/tv_watchlist_provider.dart';
 import 'features/watchlist/providers/watchlist_provider.dart';
 import 'firebase_options.dart';
@@ -35,7 +36,17 @@ class _MoviziusAppState extends ConsumerState<MoviziusApp>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     ref.read(fcmServiceProvider).initialize();
+    _cacheWatchProviders();
     _setupNotificationNavigation();
+  }
+
+  /// Refresh the TV watch-provider configuration on launch and cache it for
+  /// future features. Best-effort: a network failure here must never block the
+  /// app, so the error is swallowed and the previously cached config remains.
+  void _cacheWatchProviders() {
+    ref.read(watchProviderRepositoryProvider).refreshTvProviders().catchError(
+      (_) {},
+    );
   }
 
   void _setupNotificationNavigation() {

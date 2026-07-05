@@ -8,6 +8,10 @@
 // TMDB's `append_to_response` convention: `watchProviders` -> "watch/providers"
 // and `releaseDateTh` -> "release_dates_th".
 //
+// `watch/providers` is pre-resolved to the TH region by the backend, so it
+// parses directly as one `WatchProviderCountry` (`{ link, flatrate, buy?,
+// rent?, ads?, free? }`) rather than a per-country map.
+//
 // Every field is parsed defensively (missing/null/wrong-typed values fall
 // back to a default instead of throwing) since a discover/list endpoint
 // commonly omits the richer detail-only fields (casts, videos, budget, etc.)
@@ -92,7 +96,7 @@ class Movie {
   final Videos? videos;
   final ReleaseDates? releaseDates;
   final String mediaType;
-  final WatchProviders? watchProviders;
+  final WatchProviderCountry? watchProviders;
   final List<ReleaseDate> releaseDateTh;
 
   Movie({
@@ -179,8 +183,8 @@ class Movie {
       releaseDates: _objOrNull(json['release_dates'], ReleaseDates.fromJson),
       mediaType: _str(json['media_type']),
       watchProviders: _objOrNull(
-        json['watch/providers'],
-        WatchProviders.fromJson,
+        json['watch_providers'],
+        WatchProviderCountry.fromJson,
       ),
       releaseDateTh: _objList(json['release_dates_th'], ReleaseDate.fromJson),
     );
@@ -577,449 +581,6 @@ enum VideoType {
   };
 }
 
-class WatchProviders {
-  final Results results;
-
-  WatchProviders({required this.results});
-
-  factory WatchProviders.fromJson(Map<String, dynamic> json) {
-    return WatchProviders(
-      results: Results.fromJson(_obj(json['results']) ?? const {}),
-    );
-  }
-}
-
-/// Watch-provider availability keyed by country. Field names are the
-/// lowercased ISO 3166-1 country code; JSON keys are the uppercase code,
-/// except `resultsDo`/`resultsIn`/`resultsIs` (renamed from `do`/`in`/`is`,
-/// which are Dart keywords) -> `"DO"`/`"IN"`/`"IS"`. All fields are nullable
-/// since any given country (including the handful the original schema
-/// sample happened to have for every movie) may legitimately be absent.
-class Results {
-  final Ad? ad;
-  final Au? ae;
-  final Au? ar;
-  final Au? at;
-  final Au? au;
-  final Au? be;
-  final Au? bo;
-  final Au? br;
-  final Au? by;
-  final Au? ca;
-  final Au? ch;
-  final Au? cl;
-  final Au? co;
-  final Au? cr;
-  final Au? cz;
-  final Au? de;
-  final Au? dk;
-  final Ad? resultsDo;
-  final Au? ec;
-  final Au? eg;
-  final Au? es;
-  final Au? fi;
-  final Au? fr;
-  final Au? gb;
-  final Ad? gf;
-  final Au? gg;
-  final Au? gt;
-  final Au? hk;
-  final Au? hn;
-  final Au? hu;
-  final Au? ie;
-  final Au? resultsIn;
-  final Au? it;
-  final Au? jp;
-  final Au? kr;
-  final Au? lt;
-  final Ad? mc;
-  final Au? mx;
-  final Au? my;
-  final Au? ni;
-  final Au? nl;
-  final Au? no;
-  final Au? nz;
-  final Ad? pa;
-  final Au? pe;
-  final Ad? pf;
-  final Au? pl;
-  final Au? pt;
-  final Au? py;
-  final Au? ru;
-  final Au? sa;
-  final Au? se;
-  final Au? sk;
-  final Ad? sv;
-  final Au? tw;
-  final Au? ua;
-  final Au? us;
-  final Au? ve;
-  final Au? il;
-  final Au? tr;
-  final Au? za;
-  final Ad? ag;
-  final Au? al;
-  final Au? ao;
-  final Au? az;
-  final Au? ba;
-  final Ad? bb;
-  final Bf? bf;
-  final Au? bg;
-  final Ad? bs;
-  final Au? bz;
-  final Au? cv;
-  final Au? cy;
-  final Au? ee;
-  final Au? gh;
-  final Au? gr;
-  final Ad? gy;
-  final Ad? hr;
-  final Au? id;
-  final Au? resultsIs;
-  final Ad? jm;
-  final Ad? lc;
-  final Au? lu;
-  final Au? lv;
-  final Au? me;
-  final Au? mk;
-  final Au? ml;
-  final Au? mt;
-  final Au? mu;
-  final Au? mz;
-  final Bf? pg;
-  final Au? ph;
-  final Au? ro;
-  final Au? rs;
-  final Au? sg;
-  final Au? si;
-  final Ad? sm;
-  final Ad? tc;
-  final Au? th;
-  final Ad? tt;
-  final Au? tz;
-  final Au? ug;
-  final Ad? uy;
-  final Ad? va;
-  final Au? zw;
-  final Ad? bh;
-  final Ad? bm;
-  final Ad? ci;
-  final Ad? cm;
-  final Ad? dz;
-  final Ad? gi;
-  final Ad? gq;
-  final Ad? iq;
-  final Ad? jo;
-  final Ad? ke;
-  final Ad? kw;
-  final Ad? lb;
-  final Ad? ly;
-  final Ad? ma;
-  final Ad? md;
-  final Ad? mg;
-  final Ad? ne;
-  final Ad? ng;
-  final Ad? om;
-  final Ad? ps;
-  final Ad? qa;
-  final Ad? sc;
-  final Ad? sn;
-  final Ad? td;
-  final Ad? tn;
-  final Ad? ye;
-  final Ad? zm;
-
-  Results({
-    this.ad,
-    this.ae,
-    this.ar,
-    this.at,
-    this.au,
-    this.be,
-    this.bo,
-    this.br,
-    this.by,
-    this.ca,
-    this.ch,
-    this.cl,
-    this.co,
-    this.cr,
-    this.cz,
-    this.de,
-    this.dk,
-    this.resultsDo,
-    this.ec,
-    this.eg,
-    this.es,
-    this.fi,
-    this.fr,
-    this.gb,
-    this.gf,
-    this.gg,
-    this.gt,
-    this.hk,
-    this.hn,
-    this.hu,
-    this.ie,
-    this.resultsIn,
-    this.it,
-    this.jp,
-    this.kr,
-    this.lt,
-    this.mc,
-    this.mx,
-    this.my,
-    this.ni,
-    this.nl,
-    this.no,
-    this.nz,
-    this.pa,
-    this.pe,
-    this.pf,
-    this.pl,
-    this.pt,
-    this.py,
-    this.ru,
-    this.sa,
-    this.se,
-    this.sk,
-    this.sv,
-    this.tw,
-    this.ua,
-    this.us,
-    this.ve,
-    this.il,
-    this.tr,
-    this.za,
-    this.ag,
-    this.al,
-    this.ao,
-    this.az,
-    this.ba,
-    this.bb,
-    this.bf,
-    this.bg,
-    this.bs,
-    this.bz,
-    this.cv,
-    this.cy,
-    this.ee,
-    this.gh,
-    this.gr,
-    this.gy,
-    this.hr,
-    this.id,
-    this.resultsIs,
-    this.jm,
-    this.lc,
-    this.lu,
-    this.lv,
-    this.me,
-    this.mk,
-    this.ml,
-    this.mt,
-    this.mu,
-    this.mz,
-    this.pg,
-    this.ph,
-    this.ro,
-    this.rs,
-    this.sg,
-    this.si,
-    this.sm,
-    this.tc,
-    this.th,
-    this.tt,
-    this.tz,
-    this.ug,
-    this.uy,
-    this.va,
-    this.zw,
-    this.bh,
-    this.bm,
-    this.ci,
-    this.cm,
-    this.dz,
-    this.gi,
-    this.gq,
-    this.iq,
-    this.jo,
-    this.ke,
-    this.kw,
-    this.lb,
-    this.ly,
-    this.ma,
-    this.md,
-    this.mg,
-    this.ne,
-    this.ng,
-    this.om,
-    this.ps,
-    this.qa,
-    this.sc,
-    this.sn,
-    this.td,
-    this.tn,
-    this.ye,
-    this.zm,
-  });
-
-  factory Results.fromJson(Map<String, dynamic> json) {
-    Au? au(String key) => _objOrNull(json[key], Au.fromJson);
-    Ad? ad(String key) => _objOrNull(json[key], Ad.fromJson);
-    Bf? bf(String key) => _objOrNull(json[key], Bf.fromJson);
-
-    return Results(
-      ad: ad('AD'),
-      ae: au('AE'),
-      ar: au('AR'),
-      at: au('AT'),
-      au: au('AU'),
-      be: au('BE'),
-      bo: au('BO'),
-      br: au('BR'),
-      by: au('BY'),
-      ca: au('CA'),
-      ch: au('CH'),
-      cl: au('CL'),
-      co: au('CO'),
-      cr: au('CR'),
-      cz: au('CZ'),
-      de: au('DE'),
-      dk: au('DK'),
-      resultsDo: ad('DO'),
-      ec: au('EC'),
-      eg: au('EG'),
-      es: au('ES'),
-      fi: au('FI'),
-      fr: au('FR'),
-      gb: au('GB'),
-      gf: ad('GF'),
-      gg: au('GG'),
-      gt: au('GT'),
-      hk: au('HK'),
-      hn: au('HN'),
-      hu: au('HU'),
-      ie: au('IE'),
-      resultsIn: au('IN'),
-      it: au('IT'),
-      jp: au('JP'),
-      kr: au('KR'),
-      lt: au('LT'),
-      mc: ad('MC'),
-      mx: au('MX'),
-      my: au('MY'),
-      ni: au('NI'),
-      nl: au('NL'),
-      no: au('NO'),
-      nz: au('NZ'),
-      pa: ad('PA'),
-      pe: au('PE'),
-      pf: ad('PF'),
-      pl: au('PL'),
-      pt: au('PT'),
-      py: au('PY'),
-      ru: au('RU'),
-      sa: au('SA'),
-      se: au('SE'),
-      sk: au('SK'),
-      sv: ad('SV'),
-      tw: au('TW'),
-      ua: au('UA'),
-      us: au('US'),
-      ve: au('VE'),
-      il: au('IL'),
-      tr: au('TR'),
-      za: au('ZA'),
-      ag: ad('AG'),
-      al: au('AL'),
-      ao: au('AO'),
-      az: au('AZ'),
-      ba: au('BA'),
-      bb: ad('BB'),
-      bf: bf('BF'),
-      bg: au('BG'),
-      bs: ad('BS'),
-      bz: au('BZ'),
-      cv: au('CV'),
-      cy: au('CY'),
-      ee: au('EE'),
-      gh: au('GH'),
-      gr: au('GR'),
-      gy: ad('GY'),
-      hr: ad('HR'),
-      id: au('ID'),
-      resultsIs: au('IS'),
-      jm: ad('JM'),
-      lc: ad('LC'),
-      lu: au('LU'),
-      lv: au('LV'),
-      me: au('ME'),
-      mk: au('MK'),
-      ml: au('ML'),
-      mt: au('MT'),
-      mu: au('MU'),
-      mz: au('MZ'),
-      pg: bf('PG'),
-      ph: au('PH'),
-      ro: au('RO'),
-      rs: au('RS'),
-      sg: au('SG'),
-      si: au('SI'),
-      sm: ad('SM'),
-      tc: ad('TC'),
-      th: au('TH'),
-      tt: ad('TT'),
-      tz: au('TZ'),
-      ug: au('UG'),
-      uy: ad('UY'),
-      va: ad('VA'),
-      zw: au('ZW'),
-      bh: ad('BH'),
-      bm: ad('BM'),
-      ci: ad('CI'),
-      cm: ad('CM'),
-      dz: ad('DZ'),
-      gi: ad('GI'),
-      gq: ad('GQ'),
-      iq: ad('IQ'),
-      jo: ad('JO'),
-      ke: ad('KE'),
-      kw: ad('KW'),
-      lb: ad('LB'),
-      ly: ad('LY'),
-      ma: ad('MA'),
-      md: ad('MD'),
-      mg: ad('MG'),
-      ne: ad('NE'),
-      ng: ad('NG'),
-      om: ad('OM'),
-      ps: ad('PS'),
-      qa: ad('QA'),
-      sc: ad('SC'),
-      sn: ad('SN'),
-      td: ad('TD'),
-      tn: ad('TN'),
-      ye: ad('YE'),
-      zm: ad('ZM'),
-    );
-  }
-}
-
-class Ad {
-  final String link;
-  final List<Flatrate> flatrate;
-
-  Ad({required this.link, required this.flatrate});
-
-  factory Ad.fromJson(Map<String, dynamic> json) {
-    return Ad(
-      link: _str(json['link']),
-      flatrate: _objList(json['flatrate'], Flatrate.fromJson),
-    );
-  }
-}
-
 class Flatrate {
   final String logoPath;
   final int providerId;
@@ -1043,7 +604,7 @@ class Flatrate {
   }
 }
 
-class Au {
+class WatchProviderCountry {
   final String link;
   final List<Flatrate>? rent;
   final List<Flatrate>? buy;
@@ -1051,7 +612,7 @@ class Au {
   final List<Flatrate>? ads;
   final List<Flatrate>? free;
 
-  Au({
+  WatchProviderCountry({
     required this.link,
     this.rent,
     this.buy,
@@ -1060,31 +621,17 @@ class Au {
     this.free,
   });
 
-  factory Au.fromJson(Map<String, dynamic> json) {
+  factory WatchProviderCountry.fromJson(Map<String, dynamic> json) {
     List<Flatrate>? parseOptional(String key) =>
         json[key] == null ? null : _objList(json[key], Flatrate.fromJson);
 
-    return Au(
+    return WatchProviderCountry(
       link: _str(json['link']),
       rent: parseOptional('rent'),
       buy: parseOptional('buy'),
       flatrate: parseOptional('flatrate'),
       ads: parseOptional('ads'),
       free: parseOptional('free'),
-    );
-  }
-}
-
-class Bf {
-  final String link;
-  final List<Flatrate> buy;
-
-  Bf({required this.link, required this.buy});
-
-  factory Bf.fromJson(Map<String, dynamic> json) {
-    return Bf(
-      link: _str(json['link']),
-      buy: _objList(json['buy'], Flatrate.fromJson),
     );
   }
 }

@@ -9,7 +9,9 @@ import '../../../core/widgets/imdb_badge.dart';
 import '../../../core/widgets/media_detail_skeleton.dart';
 import '../../../core/widgets/media_detail_view.dart';
 import '../../../core/widgets/overlay_icon_button.dart';
+import '../../../core/widgets/origin_country_row.dart';
 import '../../../core/widgets/tag.dart';
+import '../../../core/widgets/watch_providers_row.dart';
 import '../../watchlist/providers/watchlist_provider.dart';
 import '../../watchlist/widgets/watchlist_icon_button.dart';
 import '../models/movie_discover_response.dart';
@@ -17,6 +19,25 @@ import '../providers/movie_detail_provider.dart';
 
 /// Picks the best YouTube trailer key out of [movie]'s videos: an official
 /// trailer if there is one, else any YouTube video, else none.
+/// TH-region streaming availability for [movie], preferring subscription
+/// (`flatrate`) providers and falling back to free/ad-supported ones, sorted
+/// by TMDB's `display_priority`.
+List<WatchProviderLogo> _watchProviderLogos(Movie movie) {
+  final country = movie.watchProviders;
+  final providers = country?.flatrate;
+  if (providers == null || providers.isEmpty) return const [];
+  final sorted = [...providers]
+    ..sort((a, b) => a.displayPriority.compareTo(b.displayPriority));
+  return [
+    for (final p in sorted)
+      WatchProviderLogo(
+        providerId: p.providerId,
+        providerName: p.providerName,
+        logoPath: p.logoPath,
+      ),
+  ];
+}
+
 String? _trailerKey(Movie movie) {
   final videos = movie.videos?.results ?? const [];
   for (final video in videos) {
@@ -187,41 +208,42 @@ class _CastRow extends StatelessWidget {
                 child: Column(
                   children: [
                     CircleAvatar(
-                    radius: 32,
-                    backgroundColor: colorScheme.surfaceContainerHighest,
-                    backgroundImage: profilePath != null && profilePath.isNotEmpty
-                        ? NetworkImage(TmdbImage.profile(profilePath))
-                        : null,
-                    child: profilePath == null || profilePath.isEmpty
-                        ? Icon(
-                            Icons.person,
-                            size: 32,
-                            color: colorScheme.onSurfaceVariant,
-                          )
-                        : null,
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    item.name,
-                    style: textTheme.labelSmall,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                  ),
-                  if (item.character != null && item.character!.isNotEmpty)
+                      radius: 32,
+                      backgroundColor: colorScheme.surfaceContainerHighest,
+                      backgroundImage:
+                          profilePath != null && profilePath.isNotEmpty
+                          ? NetworkImage(TmdbImage.profile(profilePath))
+                          : null,
+                      child: profilePath == null || profilePath.isEmpty
+                          ? Icon(
+                              Icons.person,
+                              size: 32,
+                              color: colorScheme.onSurfaceVariant,
+                            )
+                          : null,
+                    ),
+                    const SizedBox(height: 6),
                     Text(
-                      item.character!,
-                      style: textTheme.labelSmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
+                      item.name,
+                      style: textTheme.labelSmall,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.center,
                     ),
-                ],
+                    if (item.character != null && item.character!.isNotEmpty)
+                      Text(
+                        item.character!,
+                        style: textTheme.labelSmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                      ),
+                  ],
+                ),
               ),
             ),
-          ),
           );
         },
       ),
@@ -245,6 +267,7 @@ class _MovieBody extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final releaseDate =
         movie.releaseDate?.toIso8601String().split('T').first ?? 'Unknown';
+    final watchProviderLogos = _watchProviderLogos(movie);
 
     final header = Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -260,7 +283,17 @@ class _MovieBody extends StatelessWidget {
               WatchlistIconButton(id: movieId),
             ],
           ),
-          const SizedBox(height: 8),
+          if (movie.genres.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final genre in movie.genres) Tag(label: genre.name),
+              ],
+            ),
+          ],
+          const SizedBox(height: 12),
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -272,6 +305,19 @@ class _MovieBody extends StatelessWidget {
               ),
               const SizedBox(width: 4),
               Text('(${movie.voteCount})', style: textTheme.bodySmall),
+              if (movie.originCountry.isNotEmpty) ...[
+                const SizedBox(width: 10),
+                SizedBox(
+                  height: 14,
+                  child: VerticalDivider(
+                    width: 1,
+                    thickness: 1,
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                OriginCountryRow(countries: movie.originCountry),
+              ],
             ],
           ),
           const SizedBox(height: 8),
@@ -282,15 +328,9 @@ class _MovieBody extends StatelessWidget {
             const SizedBox(height: 4),
             Text('${movie.runtime} min'),
           ],
-          if (movie.genres.isNotEmpty) ...[
+          if (watchProviderLogos.isNotEmpty) ...[
             const SizedBox(height: 12),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                for (final genre in movie.genres) Tag(label: genre.name),
-              ],
-            ),
+            WatchProvidersRow(providers: watchProviderLogos),
           ],
         ],
       ),
@@ -336,8 +376,7 @@ class _MovieBody extends StatelessWidget {
                     ],
                     if (movie.casts?.crew
                             .where(
-                              (c) =>
-                                  c.job == 'Director' || c.job == 'Writer',
+                              (c) => c.job == 'Director' || c.job == 'Writer',
                             )
                             .isNotEmpty ==
                         true) ...[

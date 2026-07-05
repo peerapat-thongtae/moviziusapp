@@ -17,4 +17,7 @@ class TmdbImage {
 
   static String profile(String path, {String size = 'w185'}) =>
       '$_baseUrl/$size$path';
+
+  static String logo(String path, {String size = 'w92'}) =>
+      '$_baseUrl/$size$path';
 }
