@@ -69,6 +69,19 @@ class SeriesService {
     return TvDiscoverResponse.fromJson(response.data as Map<String, dynamic>);
   }
 
+  /// Trending TV series for the given [timeWindow] (`day` or `week`), from
+  /// TMDB's `/trending/tv/:time_window` via the proxy.
+  Future<TvDiscoverResponse> trending({
+    int page = 1,
+    String timeWindow = 'day',
+  }) async {
+    final response = await _dio.get(
+      '/tv/trending',
+      queryParameters: {'page': page, 'time_window': timeWindow},
+    );
+    return TvDiscoverResponse.fromJson(response.data as Map<String, dynamic>);
+  }
+
   /// The movizius-api proxy has no season/episode-detail endpoint, so this
   /// calls TMDB directly instead. [Episode.fromJson] already matches TMDB's
   /// season-detail episode shape exactly.

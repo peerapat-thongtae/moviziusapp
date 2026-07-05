@@ -4,9 +4,9 @@ import '../../series/models/tv_discover_response.dart';
 import '../../series/services/series_service.dart';
 import '../models/hero_item.dart';
 
-/// Fetches the first page of `/v2/movie/discover` and `/v2/tv/discover` in
-/// parallel and merges them into a single interleaved (movie, tv, movie,
-/// tv, ...) list for the home hero slider.
+/// Fetches the first page of `/v2/movie/trending` and `/v2/tv/trending`
+/// (`time_window=day`) in parallel and merges them into a single
+/// interleaved (movie, tv, movie, tv, ...) list for the home hero slider.
 class HeroRepository {
   HeroRepository(this._movieService, this._seriesService);
 
@@ -15,8 +15,8 @@ class HeroRepository {
 
   Future<List<HeroItem>> fetchHeroItems() async {
     final results = await Future.wait([
-      _movieService.discoverCatalog(page: 1),
-      _seriesService.discover(page: 1),
+      _movieService.trending(page: 1),
+      _seriesService.trending(page: 1),
     ]);
 
     final movies = (results[0] as MovieDiscoverResponse).results

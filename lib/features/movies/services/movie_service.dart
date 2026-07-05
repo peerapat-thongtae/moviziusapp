@@ -56,6 +56,21 @@ class MovieService {
       response.data as Map<String, dynamic>,
     );
   }
+
+  /// Trending movies for the given [timeWindow] (`day` or `week`), from
+  /// TMDB's `/trending/movie/:time_window` via the proxy.
+  Future<MovieDiscoverResponse> trending({
+    int page = 1,
+    String timeWindow = 'day',
+  }) async {
+    final response = await _dio.get(
+      '/movie/trending',
+      queryParameters: {'page': page, 'time_window': timeWindow},
+    );
+    return MovieDiscoverResponse.fromJson(
+      response.data as Map<String, dynamic>,
+    );
+  }
 }
 
 final movieServiceProvider = Provider<MovieService>(
