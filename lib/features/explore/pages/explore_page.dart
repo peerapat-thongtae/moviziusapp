@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
+import '../../../core/constants/tmdb_image.dart';
 import '../../../core/widgets/overlay_icon_button.dart';
 import '../../watchlist/providers/watchlist_provider.dart';
 import '../models/explore_media_type.dart';
@@ -295,6 +296,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
         return Stack(
           fit: StackFit.expand,
           children: [
+            _ReelBackdrop(video: video),
             controller == null
                 ? _ReelPlaceholder(key: ValueKey(video.id), video: video)
                 : ReelVideoPlayer(
@@ -440,6 +442,37 @@ class _MessageContent extends StatelessWidget {
   }
 }
 
+/// Dimmed poster/backdrop filling the tile behind the video/placeholder —
+/// covers the letterbox bars left by the 16:9 player on taller screens, and
+/// shows through the placeholder's own letterbox gap while it's on screen.
+class _ReelBackdrop extends StatelessWidget {
+  const _ReelBackdrop({required this.video});
+
+  final ExploreVideo video;
+
+  @override
+  Widget build(BuildContext context) {
+    final path = video.backdropPath.isNotEmpty
+        ? video.backdropPath
+        : video.posterPath;
+    if (path.isEmpty) {
+      return const ColoredBox(color: Colors.black);
+    }
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Image.network(
+          TmdbImage.backdrop(path),
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) =>
+              const ColoredBox(color: Colors.black),
+        ),
+        ColoredBox(color: Colors.black.withValues(alpha: 0.55)),
+      ],
+    );
+  }
+}
+
 /// Cheap stand-in for a reel outside the live controller window — shows the
 /// video's YouTube thumbnail instead of spinning up a WebView, so scrolling
 /// past it costs almost nothing.
@@ -451,7 +484,7 @@ class _ReelPlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.black,
+      color: Colors.transparent,
       child: Center(
         child: AspectRatio(
           aspectRatio: 16 / 9,

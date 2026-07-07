@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
@@ -33,7 +35,7 @@ class _ReelVideoPlayerState extends State<ReelVideoPlayer>
   Widget build(BuildContext context) {
     super.build(context);
     return Container(
-      color: Colors.black,
+      color: Colors.transparent,
       child: Center(
         child: IgnorePointer(
           child: YoutubePlayer(
@@ -41,6 +43,16 @@ class _ReelVideoPlayerState extends State<ReelVideoPlayer>
             backgroundColor: Colors.black,
             enableFullScreenOnVerticalDrag: false,
             autoFullScreen: false,
+            // The WebView backing this player normally claims vertical
+            // drags outright instead of entering Flutter's gesture arena,
+            // which stops the ancestor PageView from ever seeing swipes
+            // that start over the video. Declaring our own recognizer here
+            // forces it into the arena so the PageView can compete fairly.
+            gestureRecognizers: {
+              Factory<VerticalDragGestureRecognizer>(
+                () => VerticalDragGestureRecognizer(),
+              ),
+            },
           ),
         ),
       ),

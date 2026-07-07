@@ -6,6 +6,8 @@ class ExploreVideo {
   final int voteCount;
   final String status;
   final List<String> genres;
+  final String posterPath;
+  final String backdropPath;
 
   // Movie-only metadata.
   final String? releaseDate;
@@ -25,6 +27,8 @@ class ExploreVideo {
     required this.voteCount,
     required this.status,
     this.genres = const [],
+    this.posterPath = '',
+    this.backdropPath = '',
     this.releaseDate,
     this.director,
     this.firstAirDate,

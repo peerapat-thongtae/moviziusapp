@@ -95,6 +95,8 @@ class ExploreRepository {
       voteCount: movie.voteCount,
       status: movie.status,
       genres: movie.genres.map((g) => g.name).toList(),
+      posterPath: movie.posterPath,
+      backdropPath: movie.backdropPath,
       releaseDate:
           movie.effectiveReleaseDate?.toIso8601String().split('T').first ??
           '',
@@ -114,6 +116,8 @@ class ExploreRepository {
       voteCount: series.voteCount,
       status: series.status,
       genres: series.genres.map((g) => g.name).toList(),
+      posterPath: series.posterPath,
+      backdropPath: series.backdropPath,
       firstAirDate: series.firstAirDate,
       totalSeasons: series.numberOfSeasons,
       totalEpisodes: series.numberOfEpisodes,

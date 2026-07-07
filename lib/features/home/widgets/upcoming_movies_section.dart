@@ -10,6 +10,7 @@ import '../providers/upcoming_movies_provider.dart';
 
 const _cardWidth = 120.0;
 const _posterHeight = 180.0;
+const _railHeight = _posterHeight + 28;
 
 /// Horizontal rail of movies releasing in the next 14 days, shown on the
 /// home page. Hides itself while loading, on error, or when the feed is
@@ -63,7 +64,7 @@ class _Section extends StatelessWidget {
           ),
         ),
         SizedBox(
-          height: _posterHeight + 64,
+          height: _railHeight,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -100,7 +101,7 @@ class _UpcomingMoviesSkeleton extends StatelessWidget {
           child: Skeleton(width: 180, height: 24),
         ),
         SizedBox(
-          height: _posterHeight + 64,
+          height: _railHeight,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             physics: const NeverScrollableScrollPhysics(),
