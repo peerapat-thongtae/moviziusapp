@@ -11,7 +11,7 @@ class MovieService {
 
   Future<MovieDiscoverResponse> discover({int page = 1}) async {
     final response = await _dio.get(
-      '/movie/random',
+      '/movie/recommendations',
       queryParameters: {
         'page': page,
         'without_status': 'watchlist,watched',

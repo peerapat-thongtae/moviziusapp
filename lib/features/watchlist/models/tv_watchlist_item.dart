@@ -18,6 +18,7 @@ String _str(dynamic v) => v is String ? v : '';
 String? _strOrNull(dynamic v) => v is String ? v : null;
 int _int(dynamic v) => v is int ? v : (v is num ? v.toInt() : 0);
 double _double(dynamic v) => v is num ? v.toDouble() : 0;
+double? _doubleOrNull(dynamic v) => v is num ? v.toDouble() : null;
 bool _bool(dynamic v) => v is bool ? v : false;
 DateTime? _date(dynamic v) => v is String ? DateTime.tryParse(v) : null;
 
@@ -54,6 +55,7 @@ class TvWatchlistItem {
     this.seasons = const [],
     this.watchedSeasons = const [],
     this.latestWatched,
+    this.rating,
   });
 
   final int id;
@@ -76,6 +78,7 @@ class TvWatchlistItem {
   final List<TvWatchlistSeason> seasons;
   final List<int> watchedSeasons;
   final String? latestWatched;
+  final double? rating;
 
   TvWatchlistItem copyWith({
     int? id,
@@ -98,6 +101,7 @@ class TvWatchlistItem {
     List<TvWatchlistSeason>? seasons,
     List<int>? watchedSeasons,
     String? latestWatched,
+    double? rating,
   }) {
     return TvWatchlistItem(
       id: id ?? this.id,
@@ -120,6 +124,7 @@ class TvWatchlistItem {
       seasons: seasons ?? this.seasons,
       watchedSeasons: watchedSeasons ?? this.watchedSeasons,
       latestWatched: latestWatched ?? this.latestWatched,
+      rating: rating ?? this.rating,
     );
   }
 
@@ -147,6 +152,7 @@ class TvWatchlistItem {
       seasons: _objList(json['seasons'], TvWatchlistSeason.fromJson),
       watchedSeasons: _intList(json['watched_seasons']),
       latestWatched: _strOrNull(json['latest_watched']),
+      rating: _doubleOrNull(json['rating']),
     );
   }
 }

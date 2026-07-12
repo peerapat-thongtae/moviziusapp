@@ -16,7 +16,7 @@ class FilterOption<T> {
 class SearchFilters {
   const SearchFilters({
     this.sortBy = 'popularity.desc',
-    this.genreId,
+    this.genreIds = const {},
     this.year,
     this.minRating,
   });
@@ -24,8 +24,8 @@ class SearchFilters {
   /// TMDB `sort_by` value, e.g. `popularity.desc`.
   final String sortBy;
 
-  /// TMDB `with_genres` id.
-  final int? genreId;
+  /// TMDB `with_genres` ids (multi-select).
+  final Set<int> genreIds;
 
   /// Release / first-air year.
   final int? year;
@@ -35,8 +35,7 @@ class SearchFilters {
 
   SearchFilters copyWith({
     String? sortBy,
-    int? genreId,
-    bool clearGenre = false,
+    Set<int>? genreIds,
     int? year,
     bool clearYear = false,
     double? minRating,
@@ -44,11 +43,18 @@ class SearchFilters {
   }) {
     return SearchFilters(
       sortBy: sortBy ?? this.sortBy,
-      genreId: clearGenre ? null : (genreId ?? this.genreId),
+      genreIds: genreIds ?? this.genreIds,
       year: clearYear ? null : (year ?? this.year),
       minRating: clearRating ? null : (minRating ?? this.minRating),
     );
   }
+
+  /// True when any filter differs from its default.
+  bool get isActive =>
+      sortBy != const SearchFilters().sortBy ||
+      genreIds.isNotEmpty ||
+      year != null ||
+      minRating != null;
 
   /// Builds the TMDB-style discover query-param map for [kind]. Only non-empty
   /// filters are included so unset controls don't constrain the result.
@@ -57,7 +63,7 @@ class SearchFilters {
         kind == MediaKind.movie ? 'primary_release_year' : 'first_air_date_year';
     return {
       'sort_by': sortBy,
-      if (genreId != null) 'with_genres': genreId,
+      if (genreIds.isNotEmpty) 'with_genres': genreIds.join(','),
       if (year != null) yearKey: year,
       if (minRating != null) 'vote_average.gte': minRating,
     };

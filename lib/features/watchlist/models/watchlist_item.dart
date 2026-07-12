@@ -5,6 +5,7 @@ class WatchlistItem {
     required this.accountStatus,
     this.watchlistedAt,
     this.watchedAt,
+    this.rating,
   });
 
   final int id;
@@ -12,6 +13,7 @@ class WatchlistItem {
   final String accountStatus;
   final DateTime? watchlistedAt;
   final DateTime? watchedAt;
+  final double? rating;
 
   factory WatchlistItem.fromJson(Map<String, dynamic> json) {
     return WatchlistItem(
@@ -24,6 +26,10 @@ class WatchlistItem {
       },
       watchedAt: switch (json['watched_at']) {
         String value => DateTime.tryParse(value),
+        _ => null,
+      },
+      rating: switch (json['rating']) {
+        num value => value.toDouble(),
         _ => null,
       },
     );

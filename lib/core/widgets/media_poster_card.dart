@@ -61,7 +61,7 @@ class MediaPosterCard extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(
             title,
             maxLines: 1,

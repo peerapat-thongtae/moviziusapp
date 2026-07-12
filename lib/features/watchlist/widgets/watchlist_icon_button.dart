@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/tv_watchlist_item.dart';
 import '../providers/tv_watchlist_provider.dart';
 import '../providers/watchlist_provider.dart';
+import 'rating_picker_modal.dart';
 
 enum _WatchlistAction { watchlist, watched, remove }
 
@@ -28,12 +29,16 @@ class WatchlistIconButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final String? status;
+    double? rating;
     TvWatchlistItem? tvItem;
     if (_isTv) {
       tvItem = ref.watch(tvWatchlistNotifierProvider).value?[id];
       status = tvItem?.accountStatus;
+      rating = tvItem?.rating;
     } else {
-      status = ref.watch(watchlistNotifierProvider).value?[id]?.accountStatus;
+      final item = ref.watch(watchlistNotifierProvider).value?[id];
+      status = item?.accountStatus;
+      rating = item?.rating;
     }
     final isWatched = status == 'watched';
     final isWatchlisted = status == 'watchlist';
@@ -53,17 +58,39 @@ class WatchlistIconButton extends ConsumerWidget {
       icon = const Icon(Icons.bookmark_border);
     }
 
-    return IconButton(
+    final button = IconButton(
       icon: icon,
       tooltip: 'Change watchlist status',
-      onPressed: () => _showStatusSheet(context, ref, status),
+      onPressed: () => _showStatusSheet(context, ref, status, rating),
     );
+
+    if (!isWatched || rating == null) return button;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        button,
+        Text(
+          _formatRating(rating),
+          style: Theme.of(
+            context,
+          ).textTheme.labelSmall?.copyWith(color: Colors.amber),
+        ),
+      ],
+    );
+  }
+
+  String _formatRating(double rating) {
+    return rating % 1 == 0
+        ? rating.toInt().toString()
+        : rating.toStringAsFixed(1);
   }
 
   Future<void> _showStatusSheet(
     BuildContext context,
     WidgetRef ref,
     String? status,
+    double? rating,
   ) async {
     final action = await showModalBottomSheet<_WatchlistAction>(
       context: context,
@@ -102,22 +129,31 @@ class WatchlistIconButton extends ConsumerWidget {
     );
 
     if (action == null || !context.mounted) return;
-    await _applyAction(context, ref, action);
+    await _applyAction(context, ref, action, rating);
   }
 
   Future<void> _applyAction(
     BuildContext context,
     WidgetRef ref,
     _WatchlistAction action,
+    double? existingRating,
   ) async {
     try {
+      double? rating;
+      if (action == _WatchlistAction.watched) {
+        rating = await RatingPickerModal.show(
+          context,
+          initialRating: existingRating,
+        );
+        if (!context.mounted) return;
+      }
       if (_isTv) {
         final notifier = ref.read(tvWatchlistNotifierProvider.notifier);
         switch (action) {
           case _WatchlistAction.watchlist:
             await notifier.addToWatchlist(id);
           case _WatchlistAction.watched:
-            await notifier.markAsWatched(id);
+            await notifier.markAsWatched(id, rating: rating);
           case _WatchlistAction.remove:
             await notifier.removeFromWatchlist(id);
         }
@@ -127,7 +163,11 @@ class WatchlistIconButton extends ConsumerWidget {
           case _WatchlistAction.watchlist:
             await notifier.addToWatchlist(id, mediaType: mediaType);
           case _WatchlistAction.watched:
-            await notifier.markAsWatched(id, mediaType: mediaType);
+            await notifier.markAsWatched(
+              id,
+              mediaType: mediaType,
+              rating: rating,
+            );
           case _WatchlistAction.remove:
             await notifier.removeFromWatchlist(id);
         }

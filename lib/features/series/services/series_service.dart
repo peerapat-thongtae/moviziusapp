@@ -14,7 +14,7 @@ class SeriesService {
 
   Future<TvDiscoverResponse> random({int page = 1}) async {
     final response = await _dio.get(
-      '/tv/random',
+      '/tv/recommendations',
       queryParameters: {
         'page': page,
         'without_status': 'watchlist,watched',

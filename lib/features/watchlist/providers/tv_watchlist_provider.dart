@@ -45,8 +45,10 @@ class TvWatchlistNotifier extends AsyncNotifier<Map<int, TvWatchlistItem>> {
     state = AsyncData(current);
   }
 
-  Future<void> markAsWatched(int id) async {
-    await ref.read(tvWatchlistRepositoryProvider).setStatus(id, 'watched');
+  Future<void> markAsWatched(int id, {double? rating}) async {
+    await ref
+        .read(tvWatchlistRepositoryProvider)
+        .setStatus(id, 'watched', rating: rating);
     final current = Map<int, TvWatchlistItem>.of(state.value ?? {});
     final existing = current[id];
     current[id] = TvWatchlistItem(
@@ -54,6 +56,7 @@ class TvWatchlistNotifier extends AsyncNotifier<Map<int, TvWatchlistItem>> {
       name: existing?.name ?? '',
       accountStatus: 'watched',
       watchlistedAt: existing?.watchlistedAt,
+      rating: rating ?? existing?.rating,
     );
     state = AsyncData(current);
   }

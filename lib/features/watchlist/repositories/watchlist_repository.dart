@@ -27,8 +27,11 @@ class WatchlistRepository {
         .toList();
   }
 
-  Future<void> setStatus(int id, String status) {
-    return _dio.post('/movie', data: {'id': id, 'status': status});
+  Future<void> setStatus(int id, String status, {double? rating}) {
+    return _dio.post(
+      '/movie',
+      data: {'id': id, 'status': status, 'rating': ?rating},
+    );
   }
 
   Future<void> remove(int id) {
